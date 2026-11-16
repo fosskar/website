@@ -65,7 +65,7 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
         group: "projects",
         title: p.data.title,
         hint: p.data.description,
-        href: p.data.repo ?? "/#work",
+        href: p.data.repo ?? "/about/#projects",
       })),
     ...posts.map((p) => ({
       group: "blog",

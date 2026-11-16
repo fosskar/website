@@ -126,7 +126,7 @@ const projects = (await getCollection("projects")).sort(
   }
 </dl>
 
-<h2>{t.projects}</h2>
+<h2 id="projects">{t.projects}</h2>
 <ul class="projects">
   {
     projects.map((p) => (

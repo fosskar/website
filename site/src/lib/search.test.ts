@@ -26,7 +26,7 @@ describe("searchItems", () => {
     const projects = items.filter((i) => i.group === "projects");
     expect(projects.map((i) => i.title)).toEqual(["first", "second"]);
     expect(projects[0].href).toBe("https://github.com/x/first");
-    expect(projects[1].href).toBe("/#work");
+    expect(projects[1].href).toBe("/about/#projects");
     expect(projects[0].hint).toBe("first desc");
   });
 
