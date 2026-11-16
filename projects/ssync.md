@@ -3,7 +3,7 @@ title: ssync
 description: peer-to-peer sync of coding-agent sessions across machines
 repo: https://github.com/fosskar/ssync
 tags: [rust, iroh, age, nixos, clan-core]
-order: 3
+order: 1
 ---
 
 Continuous, serverless sync of coding-agent sessions (pi, omp, Claude Code,

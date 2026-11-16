@@ -3,7 +3,7 @@ title: fencr
 description: sealed firecracker microvm sandboxes for ai agents on nixos
 repo: https://github.com/fosskar/fencr
 tags: [nixos, microvm, firecracker, agents, security]
-order: 2
+order: 3
 ---
 
 A NixOS module that runs an agent in its own Firecracker microVM and keeps

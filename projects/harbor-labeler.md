@@ -3,7 +3,7 @@ title: harbor-labeler
 description: kubernetes cronjob that labels running container images in harbor
 repo: https://github.com/fosskar/harbor-labeler
 tags: [kubernetes, harbor, containers]
-order: 5
+order: 4
 ---
 
 Scans the cluster for images that are actually running and labels them in the

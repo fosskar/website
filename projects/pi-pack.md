@@ -3,7 +3,7 @@ title: pi-pack
 description: skills, extensions, prompts and themes for the pi coding agent
 repo: https://github.com/fosskar/pi-pack
 tags: [pi, nix, agents]
-order: 4
+order: 2
 ---
 
 Installable pack for the pi coding agent. Extensions add things like a
