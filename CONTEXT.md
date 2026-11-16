@@ -20,3 +20,8 @@ should use these names, not synonyms.
   publication rules are defined in `site/src/lib/posts.ts`.
 - **project**: one markdown file in `projects/`, listed on the about pages
   and the cv, ordered by frontmatter `order`.
+- **site data**: `fosskar.nix` at the repo root, evaluated by nix into
+  `site-data.json`. the home page shows the file itself; pages read the json
+  through `site/src/lib/site-data.ts`.
+- **store path**: the output path of the `website` package. the footer and
+  the build log on the home page show it.

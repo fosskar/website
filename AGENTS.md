@@ -12,7 +12,15 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
 - `projects/` → listed on the about pages and on `/cv/` (ordered by `order`)
 
-`fosskar.nix` at the repo root is the site's own data (name, role, links, the `lang`/`colorScheme` defaults). `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json` together with the package names of the flake; the build copies it to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt. The build passes its own output path as `SITE_STORE_PATH` for the footer. Each top-level section (`about`, `blog`, `cv`, `wiki`) is also a flake package linking into the built site.
+`fosskar.nix` at the repo root is the site's own data: name, role, links and the `colorScheme` default. `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json`. The build copies that file to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt.
+
+The build has three steps in `nix/package.nix`:
+
+- `website-unwrapped`: the astro build. It gets its own output path as `SITE_STORE_PATH` for the footer and for the build log on the home page
+- `cv` (`nix build .#cv`): headless chromium prints `/cv/` and `/cv/de/` of the unwrapped site to `cv.pdf` and `lebenslauf.pdf`, through a local http server because the pages load assets from absolute paths. The pdf comes from the cv page's `@media print` styles
+- `website` (default): the unwrapped site plus the pdfs under `cv/`. It replaces the unwrapped store path in the html with its own. The page then shows the path `nix build` prints
+
+`npm run dev` has no pdfs. The download links on `/cv/` only resolve in the nix build.
 
 Domain logic is centralized in `site/src/lib/`:
 
@@ -65,7 +73,7 @@ Site code:
 - TypeScript strict (`astro/tsconfigs/strict`). All config is `.ts` including `astro.config.ts`
 - domain logic belongs in `site/src/lib/` with colocated vitest tests (`notes.test.ts`, `posts.test.ts`). Pages don't inline rules: they call `published()`, `noteHref()`, etc.
 - shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings). Don't re-inline card/header markup in pages
-- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `data-theme` defaults to `colorScheme` from `fosskar.nix`, and a choice made on the home page is kept in `localStorage`. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the home page expression, the footer tree) needs global, prefixed selectors, because scoped styles do not reach it. Surfaces are flat: no gradients, blur or scroll animations. The site doesn't use a framework or any integrations beyond sitemap + RSS
+- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `data-theme` defaults to `colorScheme` from `fosskar.nix`, and a choice made on the home page is kept in `localStorage`. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the home page expression, the path line, the footer store path) avoids template whitespace and needs global, prefixed selectors, because scoped styles do not reach it. Print always uses the light palette. Surfaces are flat: no gradients, blur or scroll animations. Fonts are Inter and Commit Mono from `@fontsource`, imported in `Layout.astro` instead of loaded from other hosts. The site doesn't use a framework or any integrations beyond sitemap + RSS
 - frontmatter schemas are zod in `content.config.ts`. Extend the schema before using a new field
 
 ## Important Files
@@ -74,9 +82,9 @@ Site code:
 - `site/src/lib/notes.ts`: slug/wikilink/section logic incl. `SECTIONS`. Touch this for anything routing- or link-related
 - `site/src/lib/posts.ts`: blog publication rules
 - `site/astro.config.ts`: site URL, wikilink resolver, shiki dual themes, cache relocation, build-time wikilink validation
-- `site/src/layouts/Layout.astro`: nav, global CSS theme
+- `site/src/layouts/Layout.astro`: path line (subpages have no header, only `~/fosskar/<segments>` as links), one-line footer, search dialog, global CSS theme
 - `CONTEXT.md`: domain glossary
-- `nix/package.nix`: site build. **Trap**: content dirs are whitelisted in a `lib.fileset` union. A new repo-root content dir MUST be added there or `nix build` silently drops it
+- `nix/package.nix`: site build, cv pdfs, the final `website` package. **Trap**: content dirs are whitelisted in a `lib.fileset` union. A new repo-root content dir MUST be added there or `nix build` silently drops it
 - `nix/effects.nix`: Hercules CI daily `update-flake-inputs` effect (05:00), which commits as `fosskar[bot]` via the GitToken app secret. This repo doesn't have a deploy effect
 
 ## Runtime/Tooling Preferences
@@ -84,6 +92,7 @@ Site code:
 - **npm** with committed `package-lock.json`. Nix builds are hash-free via `pkgs.importNpmLock` (no npmDeps hash to refresh)
 - node from the devshell (nodejs 24). npm ≥ 11.10 enforces `site/.npmrc` `min-release-age=3`, a 3-day supply-chain cooldown when changing deps. `package.json` engines require node ≥ 22.12
 - `site/node_modules` is a **read-only nix store symlink**. Never `npm install` into it, and never let it get git-tracked (the flake source would then contain a broken symlink and astro prerender fails). The astro/vite caches are relocated to `site/.cache/` for this reason
+- the flake only sees files git tracks. New files are invisible to `nix build` and `nix develop` until tracked. In a jj workspace without a commit, use `nix build "path:$PWD"`
 - formatting via `nix fmt` (treefmt: nixfmt + prettier with `embeddedLanguageFormatting = "off"` so prettier doesn't reformat markdown code fences). markdownlint-cli2 and marksman are available in the devshell
 - VCS is plain git (`main`, origin = github.com/fosskar/website). Commit messages are `<area>: <description>` lowercase (`site:`, `wiki:`, `nix:`, `docs:`). The repo doesn't use GitHub Actions. CI is Hercules effects only
 
