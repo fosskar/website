@@ -24,6 +24,9 @@ validateWikiLinks(
 export default defineConfig({
   site: "https://bliki.fosskar.eu",
   integrations: [sitemap()],
+  // the default html compression drops the line break between text and a
+  // tag that starts the next source line, gluing words to links
+  compressHTML: false,
   // node_modules is a read-only nix store symlink in the dev shell;
   // keep caches (default node_modules/.astro, node_modules/.vite) outside it
   cacheDir: "./.cache/astro",
