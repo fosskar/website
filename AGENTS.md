@@ -10,14 +10,17 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 
 - `wiki/` → notes, routed **flat** as `/wiki/<basename>/` regardless of directory depth (vault-root `wiki/index.md` is the Obsidian home page, excluded via `!index.md`)
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
-- `projects/` → cards in the home page's selected work and on `/cv/` (ordered by `order`)
+- `projects/` → listed on the about pages and on `/cv/` (ordered by `order`)
 
 `fosskar.nix` at the repo root is the site's own data (name, role, links, the `lang`/`colorScheme` defaults). `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json` together with the package names of the flake; the build copies it to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt. The build passes its own output path as `SITE_STORE_PATH` for the footer. Each top-level section (`about`, `blog`, `cv`, `wiki`) is also a flake package linking into the built site.
 
 Domain logic is centralized in `site/src/lib/`:
 
 - `notes.ts`: note identity and wikilinks. Contains `slugOf`/`noteHref` (flat routing), `noteSlugIndex()` (basename → slug, Obsidian shortest-path, unique vault-wide), `resolveWikiLink()`, `scanWikiLinks()` (skips code fences), `validateWikiLinks()`, `assertUniqueSlugs()` (collision throws naming both IDs), and the `SECTIONS` record (section descriptions + display order, so vault folders **don't** need a per-directory `index.md`)
-- `posts.ts`: publication rules. `published()` filters `draft: true` and sorts newest-first. Home, blog index, blog routes, and RSS use it
+- `posts.ts`: publication rules. `published()` filters `draft: true` and sorts newest-first. The blog index, blog routes, RSS, search and the home page hover use it
+- `fosskar.ts`: `tokenize()` for showing `fosskar.nix` on the home page, `linkFor()` (paths, urls, mail and matrix ids to hrefs), `typeOf()` for the hover info, and `suggest()` for the 404 page
+- `site-data.ts`: typed access to the generated `site-data.json` and `SITE_STORE_PATH`
+- `search.ts`: the item list behind the search field and the `⌘K` dialog
 
 Build-time validation fails fast: `astro.config.ts` calls `validateWikiLinks()` and `noteSlugIndex()` at **config load**, and `wiki/[...slug].astro`'s `getStaticPaths` calls `assertUniqueSlugs()`. Broken wikilinks or duplicate basenames fail the build, so they never reach the deployed site.
 
@@ -27,7 +30,7 @@ Wikilinks `[[basename|title]]` resolve via `remark-wiki-link` (configured in `si
 
 - `wiki/`: Obsidian vault with topic dirs `nixos/` (+ `nixos/security/`), `kubernetes/`, `homelab/`, `security/yubikey/`, `gaming/`
 - `blog/`, `projects/`: content collections
-- `site/`: Astro app with `src/pages/`, `src/lib/` (domain logic + tests), `src/components/` (`ArticleHead.astro`, `EntryCard.astro`, `Social.astro`), `src/layouts/Layout.astro`, `src/content.config.ts`, `astro.config.ts`
+- `site/`: Astro app with `src/pages/`, `src/lib/` (domain logic + tests), `src/components/` (`ArticleHead.astro`, `EntryCard.astro`, `Search.astro`, `Cv.astro`, `AboutWork.astro`), `src/layouts/Layout.astro`, `src/content.config.ts`, `astro.config.ts`
 - `nix/`: flake modules `package.nix` (site build), `devshell.nix`, `effects.nix` (Hercules CI), `treefmt.nix`, `checks.nix`
 
 ## Development Commands
