@@ -52,7 +52,7 @@ const count = (groups: [string, unknown[]][]) =>
       <div class="sections">
         {
           sections.map(({ dir, groups }) => (
-            <section class="card reveal" id={dir}>
+            <section class="card" id={dir}>
               <h2>{dir}</h2>
               {SECTIONS[dir] && <p class="desc">{SECTIONS[dir]}</p>}
               {groups.map(([sub, notes]) => (

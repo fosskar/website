@@ -1,14 +1,10 @@
 ---
 // search field with a dropdown that opens on the first typed letter;
 // items come from the #search-items json that Layout renders once per page
-interface Props {
-  hero?: boolean;
-}
-const { hero = false } = Astro.props;
 ---
 
-<div class="palette" data-search data-search-hero={hero ? "" : undefined}>
-  <div class="field glass">
+<div class="palette" data-search>
+  <div class="field surface">
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -29,7 +25,7 @@ const { hero = false } = Astro.props;
     />
     <kbd>⌘K</kbd>
   </div>
-  <ul class="glass" role="listbox" hidden></ul>
+  <ul class="surface" role="listbox" hidden></ul>
 </div>
 
 <script>
@@ -125,20 +121,9 @@ const { hero = false } = Astro.props;
     if (e.target === dialog) dialog.close();
   });
 
-  // the header search button docks once the hero search scrolls away
-  const hero = document.querySelector("[data-search-hero] .field");
-  const header = document.querySelector(".site-header")!;
-  if (hero) {
-    new IntersectionObserver(
-      ([e]) => header.classList.toggle("docked", !e.isIntersecting),
-      { rootMargin: "-68px 0px 0px 0px" },
-    ).observe(hero);
-  }
 </script>
 
 <style is:global>
-  /* field and dropdown are separate glass layers: a backdrop-filter nested
-     inside another one does not blur the page behind it */
   .palette {
     position: relative;
     text-align: left;

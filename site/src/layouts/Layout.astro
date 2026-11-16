@@ -1,9 +1,9 @@
 ---
-import Social from "../components/Social.astro";
 import Search from "../components/Search.astro";
 import { getCollection } from "astro:content";
 import { published } from "../lib/posts";
 import { searchItems } from "../lib/search";
+import { fosskar, packages, storePath } from "../lib/site-data";
 
 interface Props {
   title: string;
@@ -11,8 +11,6 @@ interface Props {
   lang?: string;
   /** full-width main column (home, cv); articles keep the reading width */
   wide?: boolean;
-  /** the page has its own hero search; the header button docks on scroll */
-  heroSearch?: boolean;
   noindex?: boolean;
 }
 const {
@@ -20,14 +18,12 @@ const {
   description,
   lang = "en",
   wide = false,
-  heroSearch = false,
   noindex = false,
 } = Astro.props;
 const nav = [
-  { href: "/#focus", label: "what i do" },
-  { href: "/#work", label: "projects" },
   { href: "/blog/", label: "blog" },
   { href: "/wiki/", label: "wiki" },
+  { href: "/cv/", label: "cv" },
   { href: "/about/", label: "about" },
 ];
 const path = Astro.url.pathname;
@@ -36,57 +32,58 @@ const items = searchItems({
   posts: published(await getCollection("blog")),
   notes: await getCollection("wiki"),
 });
+
+// footer sitemap: the flake's real packages, as `nix flake show` prints them
+const pkgHref = (name: string) => (name === "default" ? "/" : `/${name}/`);
+const pkgNames = Object.keys(packages).sort((a, b) =>
+  a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b),
+);
+// built as a string: the tree relies on preserved whitespace
+const flake = [
+  `<span class="dim">$ nix flake show github:fosskar/website</span>`,
+  `<span class="dim">└───packages.x86_64-linux</span>`,
+  ...pkgNames.map(
+    (name, i) =>
+      `<span><span class="dim">    ${i === pkgNames.length - 1 ? "└───" : "├───"}</span><a href="${pkgHref(name)}">${name}</a><span class="dim">: package '${packages[name]}'</span></span>`,
+  ),
+].join("\n");
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} data-theme={fosskar.colorScheme}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <meta
-      name="theme-color"
-      content="#1c1c1c"
-      media="(prefers-color-scheme: dark)"
-    />
-    <meta
-      name="theme-color"
-      content="#fafafa"
-      media="(prefers-color-scheme: light)"
-    />
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
+    <!-- colorScheme comes from fosskar.nix; a choice made on the home page wins -->
     <script is:inline>
-      document.documentElement.classList.add("js");
+      const scheme = localStorage.getItem("colorScheme");
+      if (scheme) document.documentElement.dataset.theme = scheme;
     </script>
   </head>
   <body>
-    <div class="aurora" aria-hidden="true">
-      <span class="a"></span><span class="b"></span><span class="c"></span>
-    </div>
     <a class="skip" href="#content">skip to content</a>
-    <header class:list={["site-header", { docked: !heroSearch }]}>
+    <header class="site-header">
       <div class="bar">
         <a href="/" class="brand" translate="no">
-          <img src="/avatar.png" alt="" width="32" height="32" />fosskar
+          <img src="/avatar.png" alt="" width="28" height="28" />fosskar
         </a>
         <nav class="nav" aria-label="main">
           {
             nav.map((item) => (
               <a
                 href={item.href}
-                class:list={{
-                  active:
-                    !item.href.startsWith("/#") && path.startsWith(item.href),
-                }}
+                class:list={{ active: path.startsWith(item.href) }}
               >
                 {item.label}
               </a>
             ))
           }
-          <button class="search-btn glass" type="button" data-search-open>
+          <button class="search-btn" type="button" data-search-open>
             search <kbd>⌘K</kbd>
           </button>
         </nav>
@@ -113,8 +110,20 @@ const items = searchItems({
     </main>
     <footer>
       <div class="bar">
-        <span>© {new Date().getFullYear()} fosskar</span>
-        <Social />
+        <nav class="flake" aria-label="sitemap" set:html={flake} />
+        <div class="built">
+          <span>
+            © {new Date().getFullYear()} {fosskar.name} · <a href="/rss.xml">rss</a>
+          </span>
+          {
+            storePath && (
+              <span>
+                built as <span class="dim">/nix/store/</span>
+                {storePath.replace("/nix/store/", "")}
+              </span>
+            )
+          }
+        </div>
       </div>
     </footer>
     <dialog id="search-dialog" aria-label="search">
@@ -125,34 +134,6 @@ const items = searchItems({
       id="search-items"
       set:html={JSON.stringify(items)}
     />
-    <button id="to-top" aria-label="back to top" hidden>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="m18 15-6-6-6 6"></path>
-      </svg>
-    </button>
-    <script>
-      const btn = document.getElementById("to-top")!;
-      const toggle = () => {
-        btn.hidden = window.scrollY < 400;
-      };
-      window.addEventListener("scroll", toggle, { passive: true });
-      toggle();
-      btn.addEventListener("click", () => {
-        window.scrollTo({ top: 0 });
-        document
-          .querySelector<HTMLElement>(".skip")!
-          .focus({ preventScroll: true });
-      });
-    </script>
     <script>
       // hover "#" anchors on article body headings
       document
@@ -167,91 +148,42 @@ const items = searchItems({
           h.appendChild(a);
         });
     </script>
-    <script>
-      // reveal each element once, as soon as any part of it is on screen;
-      // siblings come in staggered
-      const revealed = document.querySelectorAll<HTMLElement>(".reveal");
-      revealed.forEach((el) => {
-        const siblings = [...(el.parentElement?.children ?? [])].filter((c) =>
-          c.classList.contains("reveal"),
-        );
-        const i = Math.min(siblings.indexOf(el), 5);
-        el.style.setProperty("--reveal-delay", `${i * 80}ms`);
-      });
-      const io = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            const el = e.target as HTMLElement;
-            if (!e.isIntersecting) continue;
-            el.classList.add("in");
-            io.unobserve(el);
-          }
-        },
-        { threshold: 0 },
-      );
-      revealed.forEach((el) => io.observe(el));
-    </script>
-    <script>
-      // card borders light up where the cursor is
-      const lit = document.querySelectorAll<HTMLElement>(
-        ".card, .palette .field",
-      );
-      document.addEventListener(
-        "pointermove",
-        (e) => {
-          for (const el of lit) {
-            const r = el.getBoundingClientRect();
-            el.style.setProperty("--cx", `${e.clientX - r.left}px`);
-            el.style.setProperty("--cy", `${e.clientY - r.top}px`);
-          }
-        },
-        { passive: true },
-      );
-    </script>
   </body>
 </html>
 
 <style is:global>
-  /* grey-teal — nixfiles modules/flake-parts/themes.nix; --accent deviates
+  /* grey-teal from nixfiles modules/flake-parts/themes.nix; --accent deviates
      from it in both modes to keep link text at 4.5:1 contrast */
   :root {
-    color-scheme: dark light;
-    --bg: #1c1c1c;
-    --bg-alt: #242424;
-    --border: #303030;
-    --text: #d0d0d0;
-    --strong: #f2f2f2;
+    --bg: #1b1b1b;
+    --bg-alt: #232323;
+    --border: #2e2e2e;
+    --text: #cfcfcf;
+    --strong: #f0f0f0;
     --muted: #9d9d9d;
-    --dim: #6f6f6f;
+    --dim: #6a6a6a;
     --accent: #1aab8e;
     --accent-bright: #1abc9c;
-    --mono: ui-monospace, "JetBrains Mono", monospace;
+    --string: #9fc9bd;
+    --mono: "CommitMono", ui-monospace, "JetBrains Mono", monospace;
+    color-scheme: dark;
     font-family: "Inter", system-ui, sans-serif;
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #fafafa;
-      --bg-alt: #f1f1f1;
-      --border: #e0e0e0;
-      --text: #262626;
-      --strong: #0e0e0e;
-      --muted: #616161;
-      --dim: #8a8a8a;
-      --accent: #0b6e5b;
-      --accent-bright: #085446;
-    }
+  :root[data-theme="light"] {
+    --bg: #fafafa;
+    --bg-alt: #f1f1f1;
+    --border: #e0e0e0;
+    --text: #262626;
+    --strong: #0e0e0e;
+    --muted: #616161;
+    --dim: #8a8a8a;
+    --accent: #0b6e5b;
+    --accent-bright: #085446;
+    --string: #1d6b5a;
+    color-scheme: light;
   }
   html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 5.5rem;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-    .heading-anchor {
-      transition: none;
-    }
+    scroll-padding-top: 5rem;
   }
   :focus-visible {
     outline: 2px solid var(--accent);
@@ -265,13 +197,16 @@ const items = searchItems({
     padding: 0.5rem 1rem;
     background: var(--bg-alt);
     border: 1px solid var(--border);
-    border-radius: 8px;
   }
   .skip:focus-visible {
     top: 0.5rem;
   }
   * {
     box-sizing: border-box;
+  }
+  /* the hidden attribute must win over component display rules */
+  [hidden] {
+    display: none !important;
   }
   body {
     margin: 0;
@@ -280,101 +215,21 @@ const items = searchItems({
     font-size: 1.0625rem;
     line-height: 1.75;
     -webkit-font-smoothing: antialiased;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: color-mix(
-      in srgb,
-      var(--accent) 20%,
-      transparent
-    );
     display: flex;
     min-height: 100vh;
     flex-direction: column;
   }
 
-  /* ---- aurora: large, heavily blurred, slowly drifting colour fields ---- */
-  .aurora {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
-  }
-  .aurora span {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(140px);
-  }
-  .aurora .a {
-    width: 55rem;
-    height: 40rem;
-    background: #1aab8e;
-    opacity: 0.14;
-    top: -20rem;
-    left: -15rem;
-    animation: drift 70s ease-in-out infinite alternate;
-  }
-  .aurora .b {
-    width: 45rem;
-    height: 35rem;
-    background: #3b7dd8;
-    opacity: 0.09;
-    top: 10rem;
-    right: -18rem;
-    animation: drift 90s ease-in-out infinite alternate-reverse;
-  }
-  .aurora .c {
-    width: 40rem;
-    height: 30rem;
-    background: #7a5cc7;
-    opacity: 0.06;
-    bottom: -18rem;
-    left: 25%;
-    animation: drift 110s ease-in-out infinite alternate;
-  }
-  @keyframes drift {
-    to {
-      transform: translate(8rem, 5rem) scale(1.1);
-    }
-  }
-  @media (prefers-color-scheme: light) {
-    .aurora .a {
-      opacity: 0.1;
-    }
-    .aurora .b {
-      opacity: 0.06;
-    }
-    .aurora .c {
-      opacity: 0.04;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .aurora span {
-      animation: none;
-    }
-  }
-
-  /* ---- frosted glass surface ---- */
-  .glass,
-  .card {
-    background: color-mix(in srgb, var(--bg-alt) 45%, transparent);
-    backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid color-mix(in srgb, var(--strong) 9%, transparent);
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--strong) 6%, transparent),
-      0 10px 40px rgba(0, 0, 0, 0.15);
-  }
-
-  /* ---- header: full width bar; nav collapses into a menu below 48rem ---- */
+  /* ---- header: nav collapses into a menu below 48rem ---- */
   .site-header {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: color-mix(in srgb, var(--bg) 80%, transparent);
-    backdrop-filter: blur(14px);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
   .bar {
-    max-width: 84rem;
+    max-width: 72rem;
     margin: 0 auto;
     padding: 0 2rem;
     display: flex;
@@ -382,83 +237,60 @@ const items = searchItems({
     align-items: center;
   }
   .site-header .bar {
-    height: 4.25rem;
+    height: 3.75rem;
   }
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.65rem;
-    font-weight: 650;
-    font-size: 1.1rem;
+    gap: 0.6rem;
+    font: 600 0.98rem var(--mono);
     color: var(--strong);
     text-decoration: none;
   }
   .brand img {
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
   }
   .site-header .nav {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.75rem;
+    font: 0.92rem var(--mono);
   }
   .site-header .nav a {
-    color: var(--text);
+    color: var(--muted);
     text-decoration: none;
-    font-size: 0.98rem;
   }
   .site-header .nav a:hover,
   .site-header .nav a.active {
+    color: var(--strong);
+  }
+  .site-header .nav a.active::before {
+    content: "./";
     color: var(--accent);
   }
-  /* collapsed to zero width until docked, so the nav sits flush right */
   .search-btn {
     font: inherit;
-    font-size: 0.9rem;
     color: var(--muted);
-    border-radius: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
     cursor: pointer;
     display: inline-flex;
-    gap: 0.6rem;
+    gap: 0.5rem;
     align-items: center;
-    height: 2.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    max-width: 0;
-    margin-left: -2rem;
-    padding: 0;
-    border-width: 0 !important;
-    opacity: 0;
-    pointer-events: none;
-    transition:
-      max-width 0.3s,
-      margin 0.3s,
-      padding 0.3s,
-      opacity 0.2s;
-  }
-  .docked .search-btn {
-    max-width: 9rem;
-    margin-left: 0;
-    padding: 0 0.7rem;
-    border-width: 1px !important;
-    opacity: 1;
-    pointer-events: auto;
+    padding: 0.15rem 0.5rem;
   }
   .search-btn:hover {
     color: var(--strong);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .search-btn {
-      transition: none;
-    }
-  }
   kbd {
-    font: 500 0.75rem var(--mono);
-    padding: 0.1rem 0.4rem;
-    border-radius: 6px;
+    font: 500 0.72rem var(--mono);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
     border: 1px solid var(--border);
     color: var(--muted);
-    background: var(--bg);
   }
   .menu {
     display: none;
@@ -473,22 +305,23 @@ const items = searchItems({
     display: none;
   }
   .menu summary svg {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.4rem;
+    height: 1.4rem;
     display: block;
   }
   .menu nav {
     position: absolute;
     left: 0;
     right: 0;
-    top: 4.25rem;
+    top: 3.75rem;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     display: grid;
     padding: 0.5rem 1.25rem 1rem;
+    font-family: var(--mono);
   }
   .menu nav :is(a, button) {
-    padding: 0.75rem 0;
+    padding: 0.7rem 0;
     color: var(--strong);
     text-decoration: none;
     border: 0;
@@ -523,8 +356,7 @@ const items = searchItems({
     overflow: visible;
   }
   #search-dialog::backdrop {
-    background: color-mix(in srgb, var(--bg) 40%, transparent);
-    backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
   }
 
   main {
@@ -536,25 +368,44 @@ const items = searchItems({
     overflow-wrap: break-word;
   }
   main.wide {
-    max-width: 84rem;
-    padding: 0 2rem 5rem;
+    max-width: 72rem;
   }
   @media (max-width: 48rem) {
-    main,
-    main.wide {
+    main {
       padding-inline: 1.25rem;
     }
   }
 
-  /* ---- footer ---- */
+  /* ---- footer: flake show sitemap and the build's store path ---- */
   footer {
     border-top: 1px solid var(--border);
     color: var(--muted);
-    font-size: 0.85rem;
+    font: 0.8rem/1.7 var(--mono);
   }
   footer .bar {
-    padding-block: 1rem;
-    gap: 1rem;
+    padding-block: 1.5rem 2rem;
+    gap: 2rem;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .flake {
+    white-space: pre;
+  }
+  .flake a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .flake a:hover {
+    color: var(--accent);
+  }
+  .built {
+    display: grid;
+    justify-items: end;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .dim {
+    color: var(--dim);
   }
 
   /* ---- typography ---- */
@@ -567,12 +418,12 @@ const items = searchItems({
     color: var(--strong);
   }
   h1 {
-    font-size: 2.75rem;
-    letter-spacing: -0.035em;
+    font-size: 2.4rem;
+    letter-spacing: -0.03em;
     margin: 0 0 1rem;
   }
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     margin: 2.75rem 0 0.75rem;
   }
   h3 {
@@ -599,9 +450,9 @@ const items = searchItems({
     font-size: 0.9em;
   }
   pre {
-    background: color-mix(in srgb, var(--bg-alt) 85%, transparent) !important;
+    background: var(--bg-alt) !important;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 1rem;
     overflow-x: auto;
   }
@@ -611,21 +462,16 @@ const items = searchItems({
   }
   /* shiki dual themes: tokens carry inline light colors plus --shiki-dark
      variables; switch to them when the site renders dark */
-  @media (prefers-color-scheme: dark) {
-    .astro-code,
-    .astro-code span {
-      color: var(--shiki-dark) !important;
-      font-style: var(--shiki-dark-font-style) !important;
-      font-weight: var(--shiki-dark-font-weight) !important;
-    }
+  :root:not([data-theme="light"]) :is(.astro-code, .astro-code span) {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
   }
   blockquote {
-    border-left: 3px solid var(--accent);
+    border-left: 2px solid var(--accent);
     margin-left: 0;
     padding: 0.25rem 0 0.25rem 1rem;
     color: var(--muted);
-    background: color-mix(in srgb, var(--accent) 5%, transparent);
-    border-radius: 0 8px 8px 0;
   }
   hr {
     border: none;
@@ -649,49 +495,27 @@ const items = searchItems({
   }
   img {
     max-width: 100%;
-    border-radius: 10px;
-  }
-  .brand img {
-    border-radius: 50%;
+    border-radius: 6px;
   }
 
-  /* ---- shared components ---- */
+  /* ---- shared components: flat surfaces, no blur or glow ---- */
+  .surface,
   .card {
-    position: relative;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+  }
+  .card {
     display: block;
-    border-radius: 18px;
-    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    padding: 1.1rem 1.35rem;
     transition: border-color 0.15s ease;
-  }
-  /* border glow that follows the cursor; --cx/--cy set by the layout script */
-  .card::before,
-  .palette .field::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: radial-gradient(
-      18rem circle at var(--cx, -100%) var(--cy, -100%),
-      var(--accent),
-      transparent 60%
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
-  @media (hover: none) {
-    .card::before,
-    .palette .field::before {
-      display: none;
-    }
   }
   a.card {
     color: inherit;
     text-decoration: none;
+  }
+  a.card:hover {
+    border-color: var(--dim);
   }
   .card h2 {
     margin: 0 0 0.25rem;
@@ -704,24 +528,23 @@ const items = searchItems({
   .stack {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
   .muted {
     color: var(--muted);
   }
   .chip {
     display: inline-block;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    padding: 0.125rem 0.5rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    color: var(--accent);
+    font: 0.75rem/1.4 var(--mono);
+    padding: 0.05rem 0.45rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
     text-decoration: none;
     white-space: nowrap;
   }
   .chip:hover {
-    color: var(--accent-bright);
+    color: var(--accent);
   }
   .section-head {
     display: flex;
@@ -751,63 +574,6 @@ const items = searchItems({
     flex-wrap: wrap;
     margin: 0.25rem 0;
   }
-  /* fade and slide in once, when scrolled into view; the reveal script adds
-     .in and sets a stagger delay. only hidden when js runs, so no-js shows all */
-  .js .reveal {
-    opacity: 0;
-    transform: translateY(24px);
-    filter: blur(6px);
-    transition:
-      opacity 0.7s ease var(--reveal-delay, 0ms),
-      transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
-      filter 0.7s ease var(--reveal-delay, 0ms),
-      border-color 0.15s ease;
-  }
-  .js .reveal.in {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .js .reveal {
-      opacity: 1;
-      transform: none;
-      filter: none;
-      transition: none;
-    }
-  }
-
-  /* ---- back to top ---- */
-  #to-top {
-    position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-alt);
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    cursor: pointer;
-    z-index: 10;
-    transition:
-      color 0.15s ease,
-      border-color 0.15s ease;
-  }
-  #to-top:hover {
-    color: var(--accent);
-    border-color: var(--dim);
-  }
-  #to-top[hidden] {
-    display: none;
-  }
-  #to-top svg {
-    width: 1.1rem;
-    height: 1.1rem;
-  }
 
   /* ---- heading anchors ---- */
   .heading-anchor {
@@ -815,17 +581,14 @@ const items = searchItems({
     color: var(--accent);
     text-decoration: none;
     opacity: 0;
-    transition: opacity 0.15s ease;
   }
   :is(h2, h3, h4):hover .heading-anchor {
     opacity: 1;
   }
 
   @media print {
-    .aurora,
     .site-header,
     footer,
-    #to-top,
     #search-dialog {
       display: none !important;
     }
@@ -833,8 +596,7 @@ const items = searchItems({
       display: block;
       background: none;
     }
-    main,
-    main.wide {
+    main {
       padding: 0;
       max-width: none;
     }

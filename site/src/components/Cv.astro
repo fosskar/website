@@ -195,7 +195,7 @@ const projects = (await getCollection("projects"))
   .filter((p) => p.id in t.projects)
   .sort((a, b) => a.data.order - b.data.order);
 
-// lucide icons (mail, github, sprout) and the matrix [m] mark from Social.astro
+// lucide icons (mail, github, sprout) and a matrix [m] mark
 const contacts = [
   {
     href: "mailto:simon@nx3.eu",
@@ -240,7 +240,7 @@ const langs = [
 ];
 ---
 
-<article class="sheet glass" lang={lang}>
+<article class="sheet surface" lang={lang}>
   <header class="top">
     <div>
       <h1 class="name" aria-label="Simon S.">
