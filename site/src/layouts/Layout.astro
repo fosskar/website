@@ -168,8 +168,9 @@ const items = searchItems({
         });
     </script>
     <script>
-      // reveal elements each time they scroll into view, from the side they
-      // enter; siblings come in staggered
+      // reveal elements when they scroll in from below; leaving at the top
+      // keeps them shown, so scrolling back up never replays the fade.
+      // siblings come in staggered
       const revealed = document.querySelectorAll<HTMLElement>(".reveal");
       revealed.forEach((el) => {
         const siblings = [...(el.parentElement?.children ?? [])].filter((c) =>
@@ -182,12 +183,8 @@ const items = searchItems({
         (entries) => {
           for (const e of entries) {
             const el = e.target as HTMLElement;
-            if (e.isIntersecting) {
-              el.classList.add("in");
-            } else {
-              el.classList.remove("in");
-              el.dataset.from = e.boundingClientRect.top < 0 ? "above" : "below";
-            }
+            if (e.isIntersecting) el.classList.add("in");
+            else if (e.boundingClientRect.top > 0) el.classList.remove("in");
           }
         },
         { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
@@ -754,8 +751,9 @@ const items = searchItems({
     flex-wrap: wrap;
     margin: 0.25rem 0;
   }
-  /* fade and slide in whenever scrolled into view; the reveal script toggles
-     .in and sets a stagger delay. only hidden when js runs, so no-js shows all */
+  /* fade and slide in when scrolled into view from below; the reveal script
+     toggles .in and sets a stagger delay. only hidden when js runs, so no-js
+     shows all */
   .js .reveal {
     opacity: 0;
     transform: translateY(24px);
@@ -765,9 +763,6 @@ const items = searchItems({
       transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
       filter 0.7s ease var(--reveal-delay, 0ms),
       border-color 0.15s ease;
-  }
-  .js .reveal[data-from="above"] {
-    transform: translateY(-24px);
   }
   .js .reveal.in {
     opacity: 1;
