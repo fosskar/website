@@ -1,9 +1,12 @@
 ---
+import "@fontsource-variable/inter";
+import "@fontsource/commit-mono/400.css";
+import "@fontsource/commit-mono/600.css";
 import Search from "../components/Search.astro";
 import { getCollection } from "astro:content";
 import { published } from "../lib/posts";
 import { searchItems } from "../lib/search";
-import { fosskar, packages, storePath } from "../lib/site-data";
+import { fosskar, storePath } from "../lib/site-data";
 
 interface Props {
   title: string;
@@ -20,33 +23,24 @@ const {
   wide = false,
   noindex = false,
 } = Astro.props;
-const nav = [
-  { href: "/blog/", label: "blog" },
-  { href: "/wiki/", label: "wiki" },
-  { href: "/cv/", label: "cv" },
-  { href: "/about/", label: "about" },
-];
-const path = Astro.url.pathname;
+// subpages start with their path, each segment a link; the home page has none
+const segments = Astro.url.pathname.split("/").filter(Boolean);
+const esc = (t: string) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+// built as a string so template whitespace can't split the path
+const crumbs = [
+  `<a href="/" translate="no">~/fosskar</a>`,
+  ...segments.map((seg, i) =>
+    i === segments.length - 1
+      ? `/<span aria-current="page">${esc(seg)}</span>`
+      : `/<a href="/${segments.slice(0, i + 1).map(esc).join("/")}/">${esc(seg)}</a>`,
+  ),
+].join("");
 const items = searchItems({
   projects: await getCollection("projects"),
   posts: published(await getCollection("blog")),
   notes: await getCollection("wiki"),
 });
 
-// footer sitemap: the flake's real packages, as `nix flake show` prints them
-const pkgHref = (name: string) => (name === "default" ? "/" : `/${name}/`);
-const pkgNames = Object.keys(packages).sort((a, b) =>
-  a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b),
-);
-// built as a string: the tree relies on preserved whitespace
-const flake = [
-  `<span class="dim">$ nix flake show github:fosskar/website</span>`,
-  `<span class="dim">└───packages.x86_64-linux</span>`,
-  ...pkgNames.map(
-    (name, i) =>
-      `<span><span class="dim">    ${i === pkgNames.length - 1 ? "└───" : "├───"}</span><a href="${pkgHref(name)}">${name}</a><span class="dim">: package '${packages[name]}'</span></span>`,
-  ),
-].join("\n");
 ---
 
 <!doctype html>
@@ -67,63 +61,34 @@ const flake = [
   </head>
   <body>
     <a class="skip" href="#content">skip to content</a>
-    <header class="site-header">
-      <div class="bar">
-        <a href="/" class="brand" translate="no">
-          <img src="/avatar.png" alt="" width="28" height="28" />fosskar
-        </a>
-        <nav class="nav" aria-label="main">
-          {
-            nav.map((item) => (
-              <a
-                href={item.href}
-                class:list={{ active: path.startsWith(item.href) }}
-              >
-                {item.label}
-              </a>
-            ))
-          }
-          <button class="search-btn" type="button" data-search-open>
-            search <kbd>⌘K</kbd>
-          </button>
-        </nav>
-        <details class="menu">
-          <summary aria-label="menu">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg
-            >
-          </summary>
-          <nav aria-label="main">
-            {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-            <button type="button" data-search-open>search</button>
-          </nav>
-        </details>
-      </div>
-    </header>
+    {
+      segments.length > 0 && (
+        <header class="path">
+          <div class="bar">
+            <nav aria-label="breadcrumb" set:html={crumbs} />
+            <button class="search-btn" type="button" data-search-open>
+              search <kbd>⌘K</kbd>
+            </button>
+          </div>
+        </header>
+      )
+    }
     <main id="content" class:list={{ wide }}>
       <slot />
     </main>
     <footer>
       <div class="bar">
-        <nav class="flake" aria-label="sitemap" set:html={flake} />
-        <div class="built">
-          <span>
-            © {new Date().getFullYear()} {fosskar.name} · <a href="/rss.xml">rss</a>
-          </span>
-          {
-            storePath && (
-              <span>
-                built as <span class="dim">/nix/store/</span>
-                {storePath.replace("/nix/store/", "")}
-              </span>
-            )
-          }
-        </div>
+        <span>
+          © {new Date().getFullYear()} {fosskar.name} · <a href="/rss.xml">rss</a>
+        </span>
+        {
+          storePath && (
+            <span
+              class="built"
+              set:html={`built as <span class="dim">/nix/store/</span>${esc(storePath.replace("/nix/store/", ""))}`}
+            />
+          )
+        }
       </div>
     </footer>
     <dialog id="search-dialog" aria-label="search">
@@ -165,9 +130,9 @@ const flake = [
     --accent: #1aab8e;
     --accent-bright: #1abc9c;
     --string: #9fc9bd;
-    --mono: "CommitMono", ui-monospace, "JetBrains Mono", monospace;
+    --mono: "Commit Mono", ui-monospace, monospace;
     color-scheme: dark;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "Inter Variable", system-ui, sans-serif;
   }
   :root[data-theme="light"] {
     --bg: #fafafa;
@@ -183,7 +148,7 @@ const flake = [
     color-scheme: light;
   }
   html {
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 2rem;
   }
   :focus-visible {
     outline: 2px solid var(--accent);
@@ -220,14 +185,6 @@ const flake = [
     flex-direction: column;
   }
 
-  /* ---- header: nav collapses into a menu below 48rem ---- */
-  .site-header {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-  }
   .bar {
     max-width: 72rem;
     margin: 0 auto;
@@ -235,52 +192,42 @@ const flake = [
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
   }
-  .site-header .bar {
-    height: 3.75rem;
+
+  /* ---- path line on subpages ---- */
+  .path {
+    font: 0.9rem var(--mono);
   }
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    font: 600 0.98rem var(--mono);
-    color: var(--strong);
-    text-decoration: none;
+  .path .bar {
+    padding-block: 1.6rem 0;
   }
-  .brand img {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 50%;
+  .path nav {
+    color: var(--dim);
+    overflow-wrap: anywhere;
   }
-  .site-header .nav {
-    display: flex;
-    align-items: center;
-    gap: 1.75rem;
-    font: 0.92rem var(--mono);
-  }
-  .site-header .nav a {
+  .path a {
     color: var(--muted);
     text-decoration: none;
   }
-  .site-header .nav a:hover,
-  .site-header .nav a.active {
-    color: var(--strong);
-  }
-  .site-header .nav a.active::before {
-    content: "./";
+  .path a:hover {
     color: var(--accent);
   }
+  .path [aria-current] {
+    color: var(--strong);
+  }
   .search-btn {
+    flex: none;
     font: inherit;
-    color: var(--muted);
+    font-size: 0.82rem;
+    color: var(--dim);
     background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    border: 0;
     cursor: pointer;
     display: inline-flex;
     gap: 0.5rem;
     align-items: center;
-    padding: 0.15rem 0.5rem;
+    padding: 0;
   }
   .search-btn:hover {
     color: var(--strong);
@@ -292,55 +239,7 @@ const flake = [
     border: 1px solid var(--border);
     color: var(--muted);
   }
-  .menu {
-    display: none;
-  }
-  .menu summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    color: var(--strong);
-  }
-  .menu summary::-webkit-details-marker {
-    display: none;
-  }
-  .menu summary svg {
-    width: 1.4rem;
-    height: 1.4rem;
-    display: block;
-  }
-  .menu nav {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 3.75rem;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    padding: 0.5rem 1.25rem 1rem;
-    font-family: var(--mono);
-  }
-  .menu nav :is(a, button) {
-    padding: 0.7rem 0;
-    color: var(--strong);
-    text-decoration: none;
-    border: 0;
-    border-top: 1px solid var(--border);
-    background: none;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  .menu nav a:first-child {
-    border-top: 0;
-  }
   @media (max-width: 48rem) {
-    .site-header .nav {
-      display: none;
-    }
-    .menu {
-      display: block;
-    }
     .bar {
       padding: 0 1.25rem;
     }
@@ -376,32 +275,20 @@ const flake = [
     }
   }
 
-  /* ---- footer: flake show sitemap and the build's store path ---- */
+  /* ---- footer: one line ---- */
   footer {
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font: 0.8rem/1.7 var(--mono);
+    color: var(--dim);
+    font: 0.78rem/1.7 var(--mono);
   }
   footer .bar {
-    padding-block: 1.5rem 2rem;
-    gap: 2rem;
-    align-items: end;
+    padding-block: 2rem;
+    gap: 1rem 2rem;
     flex-wrap: wrap;
   }
-  .flake {
-    white-space: pre;
-  }
-  .flake a {
-    color: var(--text);
-    text-decoration: none;
-  }
-  .flake a:hover {
-    color: var(--accent);
+  footer a {
+    color: var(--muted);
   }
   .built {
-    display: grid;
-    justify-items: end;
-    text-align: right;
     overflow-wrap: anywhere;
   }
   .dim {
@@ -568,7 +455,21 @@ const flake = [
   }
 
   @media print {
-    .site-header,
+    /* paper is light whatever the screen theme is */
+    :root,
+    :root[data-theme] {
+      color-scheme: light;
+      --bg: #fff;
+      --bg-alt: #fff;
+      --border: #e0e0e0;
+      --text: #262626;
+      --strong: #0e0e0e;
+      --muted: #616161;
+      --dim: #8a8a8a;
+      --accent: #0b6e5b;
+      --string: #1d6b5a;
+    }
+    .path,
     footer,
     #search-dialog {
       display: none !important;
