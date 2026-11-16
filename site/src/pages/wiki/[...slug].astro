@@ -32,64 +32,84 @@ const toc = (entry.data.enableToc ?? true)
   : [];
 ---
 
-<Layout title={`${entry.data.title} — fosskar`} description={entry.data.description}>
-  <nav class="wiki-sidebar" aria-label="wiki notes">
-    <WikiTree notes={all} current={entry.id} />
-  </nav>
-  <details class="wiki-browse">
-    <summary>browse wiki</summary>
-    <WikiTree notes={all} current={entry.id} />
-  </details>
-  <article>
-    <ArticleHead
-      title={entry.data.title}
-      description={entry.data.description}
-      date={entry.data.date}
-      datePrefix="last verified"
-    >
-      <nav slot="topline" aria-label="breadcrumb">
-        <a href="/wiki/">wiki</a> / <a href={sectionHref(section)}>{section}</a>
-      </nav>
-      <Fragment slot="chips">
-        {entry.data.type !== "note" && <span class="chip">{entry.data.type}</span>}
-      </Fragment>
-    </ArticleHead>
-    <Content />
-  </article>
-  {
-    toc.length > 1 && (
-      <nav class="toc" aria-label="table of contents">
-        <span class="toc-title">on this page</span>
-        <ul>
-          {toc.map((h) => (
-            <li class={`depth-${h.depth}`}>
-              <a href={`#${h.slug}`}>{h.text}</a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    )
-  }
+<Layout
+  title={`${entry.data.title} — fosskar`}
+  description={entry.data.description}
+  wide
+>
+  <div class="note">
+    <nav class="wiki-sidebar" aria-label="wiki notes">
+      <WikiTree notes={all} current={entry.id} />
+    </nav>
+    <div class="main-col">
+      <details class="wiki-browse">
+        <summary>browse wiki</summary>
+        <WikiTree notes={all} current={entry.id} />
+      </details>
+      <article>
+        <ArticleHead
+          title={entry.data.title}
+          description={entry.data.description}
+          date={entry.data.date}
+          datePrefix="last verified"
+        >
+          <nav slot="topline" aria-label="breadcrumb">
+            <a href="/wiki/">wiki</a> / <a href={sectionHref(section)}>{section}</a>
+          </nav>
+          <Fragment slot="chips">
+            {entry.data.type !== "note" && <span class="chip">{entry.data.type}</span>}
+          </Fragment>
+        </ArticleHead>
+        <Content />
+      </article>
+    </div>
+    {
+      toc.length > 1 && (
+        <nav class="toc" aria-label="table of contents">
+          <span class="toc-title">on this page</span>
+          <ul>
+            {toc.map((h) => (
+              <li class={`depth-${h.depth}`}>
+                <a href={`#${h.slug}`}>{h.text}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+  </div>
 </Layout>
 
 <style>
-  .wiki-sidebar {
-    display: none;
-    position: fixed;
-    top: 6rem;
-    /* left gutter, mirrors .toc */
-    right: calc(50% + 24rem);
-    width: 15rem;
+  /* note tree | article | on this page; side columns drop out as space shrinks */
+  .note {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr) 13rem;
+    gap: 3.5rem;
+    padding-top: 3rem;
+  }
+  .wiki-sidebar,
+  .toc {
+    position: sticky;
+    top: 6.5rem;
+    align-self: start;
     max-height: calc(100vh - 8rem);
     overflow-y: auto;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     line-height: 1.5;
   }
+  .main-col {
+    min-width: 0;
+  }
+  article {
+    max-width: 48rem;
+  }
   .wiki-browse {
+    display: none;
     margin-bottom: 1.5rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.9rem;
   }
   .wiki-browse > summary {
@@ -99,47 +119,20 @@ const toc = (entry.data.enableToc ?? true)
   .wiki-browse[open] > summary {
     margin-bottom: 0.5rem;
   }
-  @media (min-width: 82rem) {
-    .wiki-sidebar {
-      display: block;
-    }
-    .wiki-browse {
-      display: none;
-    }
-  }
-  .toc {
-    display: none;
-    position: fixed;
-    top: 6rem;
-    /* right gutter: main column is 46rem centered */
-    left: calc(50% + 24rem);
-    width: 15rem;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    font-size: 0.85rem;
-    line-height: 1.5;
-  }
-  /* only when the gutter actually fits: 46rem column + 2x16rem gutters */
-  @media (min-width: 82rem) {
-    .toc {
-      display: block;
-    }
-  }
   .toc-title {
-    color: var(--muted);
-    font-weight: 600;
+    color: var(--dim);
     text-transform: uppercase;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
   }
   .toc ul {
     list-style: none;
     padding: 0;
-    margin: 0.5rem 0 0;
+    margin: 0.75rem 0 0;
     border-left: 1px solid var(--border);
   }
   .toc li {
-    padding: 0.125rem 0 0.125rem 0.75rem;
+    padding: 0.2rem 0 0.2rem 0.85rem;
   }
   .toc li.depth-3 {
     padding-left: 1.75rem;
@@ -149,6 +142,26 @@ const toc = (entry.data.enableToc ?? true)
     text-decoration: none;
   }
   .toc a:hover {
-    color: var(--accent-bright);
+    color: var(--accent);
+  }
+  @media (max-width: 80rem) {
+    .note {
+      grid-template-columns: 14rem minmax(0, 1fr);
+    }
+    .toc {
+      display: none;
+    }
+  }
+  @media (max-width: 60rem) {
+    .note {
+      grid-template-columns: minmax(0, 1fr);
+      padding-top: 2rem;
+    }
+    .wiki-sidebar {
+      display: none;
+    }
+    .wiki-browse {
+      display: block;
+    }
   }
 </style>

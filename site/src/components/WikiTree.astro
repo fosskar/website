@@ -1,7 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import {
-  SECTIONS,
   groupsOf,
   noteHref,
   orderedSections,
@@ -11,21 +10,19 @@ import {
 interface Props {
   notes: CollectionEntry<"wiki">[];
   current?: string;
-  index?: boolean;
 }
-const { notes, current, index = false } = Astro.props;
+const { notes, current } = Astro.props;
 const sections = orderedSections(notes.map((e) => sectionOf(e.id)));
 const holds = (prefix: string) =>
   current !== undefined && current.startsWith(prefix + "/");
 ---
 
-<ul class:list={["tree", { index }]}>
+<ul class="tree">
   {
     sections.map((dir) => (
       <li>
-        <details open={index || holds(dir)} id={index ? dir : undefined}>
+        <details open={holds(dir)}>
           <summary>{dir}</summary>
-          {index && SECTIONS[dir] && <p class="desc">{SECTIONS[dir]}</p>}
           <ul>
             {groupsOf(dir, notes).map(([sub, group]) => {
               const items = group.map((note) => (
@@ -36,14 +33,11 @@ const holds = (prefix: string) =>
                   >
                     {note.data.title}
                   </a>
-                  {index && note.data.type !== "note" && (
-                    <span class="type">{note.data.type}</span>
-                  )}
                 </li>
               ));
               return sub ? (
                 <li>
-                  <details open={index || holds(`${dir}/${sub}`)}>
+                  <details open={holds(`${dir}/${sub}`)}>
                     <summary>{sub}</summary>
                     <ul>{items}</ul>
                   </details>
@@ -113,26 +107,5 @@ const holds = (prefix: string) =>
   .tree a[aria-current="page"] {
     color: var(--accent);
     font-weight: 600;
-  }
-  .desc {
-    margin: 0 0 0.25rem 1rem;
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  .type {
-    margin-left: 0.5rem;
-    font-size: 0.7rem;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.125rem 0.25rem;
-    vertical-align: middle;
-  }
-  .index > li + li {
-    margin-top: 0.75rem;
-  }
-  .index > li > details > summary {
-    font-size: 1.15rem;
-    color: var(--text);
   }
 </style>

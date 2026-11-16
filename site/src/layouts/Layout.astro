@@ -247,7 +247,8 @@ const items = searchItems({
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.65;
+    font-size: 1.0625rem;
+    line-height: 1.75;
     -webkit-font-smoothing: antialiased;
     touch-action: manipulation;
     -webkit-tap-highlight-color: color-mix(
@@ -345,7 +346,7 @@ const items = searchItems({
     border-bottom: 1px solid var(--border);
   }
   .bar {
-    max-width: 76rem;
+    max-width: 84rem;
     margin: 0 auto;
     padding: 0 2rem;
     display: flex;
@@ -499,20 +500,21 @@ const items = searchItems({
   }
 
   main {
-    max-width: 46rem;
+    max-width: 60rem;
     margin: 0 auto;
-    padding: 2.5rem 1rem 4rem;
+    padding: 3.5rem 2rem 5rem;
     width: 100%;
     flex: 1;
     overflow-wrap: break-word;
   }
   main.wide {
-    max-width: 76rem;
-    padding: 0 2rem 4rem;
+    max-width: 84rem;
+    padding: 0 2rem 5rem;
   }
   @media (max-width: 48rem) {
+    main,
     main.wide {
-      padding: 0 1.25rem 3rem;
+      padding-inline: 1.25rem;
     }
   }
 
@@ -537,20 +539,23 @@ const items = searchItems({
     color: var(--strong);
   }
   h1 {
-    font-size: 2.25rem;
-    letter-spacing: -0.03em;
-    margin: 0 0 0.75rem;
+    font-size: 2.75rem;
+    letter-spacing: -0.035em;
+    margin: 0 0 1rem;
   }
   h2 {
-    font-size: 1.4rem;
-    margin: 2rem 0 0.75rem;
+    font-size: 1.5rem;
+    margin: 2.75rem 0 0.75rem;
   }
   h3 {
     font-size: 1.1rem;
     margin: 1.5rem 0 0.5rem;
   }
   p {
-    margin: 0.75rem 0;
+    margin: 1.1rem 0;
+  }
+  li + li {
+    margin-top: 0.3rem;
   }
   a {
     color: var(--accent);
