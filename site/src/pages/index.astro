@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { published } from "../lib/posts";
 import { linkFor, tokenize, typeOf } from "../lib/fosskar";
-import { fosskar, storePath } from "../lib/site-data";
+import { fosskar } from "../lib/site-data";
 
 // the page shows the file the site's data is evaluated from
 const source = readFileSync(resolve(process.cwd(), "../fosskar.nix"), "utf8").trimEnd();
@@ -26,7 +26,7 @@ const hovers: Record<string, string> = {
   likes:
     "what i spend my free time on. local llms means llama.cpp and vllm in my homelab, with regular benchmarks.",
   writing: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}.`,
-  work: "my cv in english and german, as a page and as pdf, and my code.",
+  work: "what i work on, my cv in english and german (page and pdf), and my code.",
   contact: "mail or matrix, whichever you prefer.",
 };
 const types: Record<string, string> = Object.fromEntries(
@@ -58,14 +58,10 @@ const html = lines
         return text;
       })
       .join("");
-    return `<span class="ln" aria-hidden="true">${i + 1}</span>${code}`;
+    return code;
   })
   .join("\n");
 
-// the build log replays real astro output; the page count matches this build
-const pages = 8 + posts.length + notes.length;
-const outPath = storePath ?? "/nix/store/…-website-0.1.0";
-const sections = ["about", "blog", "cv", "wiki"];
 ---
 
 <Layout
@@ -74,46 +70,7 @@ const sections = ["about", "blog", "cv", "wiki"];
   wide
 >
   <div class="home">
-    <figure class="frame file" aria-label="fosskar.nix">
-      <figcaption class="tabs"><span class="tab">fosskar.nix</span></figcaption>
-      <pre class="nix" id="nix"><code set:html={html} /></pre>
-      <div class="status">
-        <span>nix</span><span>{lines.length} lines</span><span>utf-8</span>
-      </div>
-    </figure>
-
-    <figure class="frame term" id="term" title="click to run the build again">
-      <figcaption class="titlebar">
-        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span>terminal — ~/fosskar</span>
-      </figcaption>
-      <div class="screen">
-        <div class="cmd"><span class="prompt">$</span> <span class="typed">nix build github:fosskar/website -L --print-out-paths</span></div>
-        <div class="log">website&gt; [content] Syncing content</div>
-        <div class="log">website&gt; [content] Synced content</div>
-        <div class="log">website&gt; [build] output: "static"</div>
-        <div class="log">website&gt; [build] Collecting build info...</div>
-        <div class="log">website&gt; [build] Building static entrypoints...</div>
-        <div class="log">website&gt; [build] {pages} page(s) built</div>
-        <div class="log">website&gt; [build] Complete!</div>
-        <div class="out">{outPath}</div>
-        <div class="cmd"><span class="prompt">$</span> <span class="typed paste">tree -d -L 1 {outPath}</span></div>
-        <div class="out">{outPath}</div>
-        <ul class="tree" aria-label="sections">
-          {
-            sections.map((s, i) => (
-              <li>
-                <span class="dim">{i === sections.length - 1 ? "└──" : "├──"}</span>
-                <a href={`/${s}/`}>{s}</a>
-              </li>
-            ))
-          }
-        </ul>
-        <div class="out">&nbsp;</div>
-        <div class="out">{sections.length} directories</div>
-        <div class="cmd"><span class="prompt">$</span> <span class="cursor"></span></div>
-      </div>
-    </figure>
+    <pre class="nix" id="nix"><code set:html={html} /></pre>
   </div>
 </Layout>
 
@@ -132,53 +89,6 @@ const sections = ["about", "blog", "cv", "wiki"];
     show();
   });
 
-  // the build: plays once per session, again on click; the finished state is
-  // in the html for no-js and reduced motion
-  const term = document.getElementById("term")!;
-  const steps = [...term.querySelector(".screen")!.children] as HTMLElement[];
-  const texts = steps.map((s) => s.querySelector(".typed")?.textContent ?? "");
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let running = false;
-
-  async function play() {
-    if (running) return;
-    running = true;
-    let skip = false;
-    const stop = (e: Event) => {
-      if (!(e.target as HTMLElement).closest("#term")) skip = true;
-    };
-    addEventListener("keydown", stop);
-    addEventListener("pointerdown", stop);
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, skip ? 0 : ms));
-    steps.forEach((s) => (s.hidden = true));
-    await wait(250);
-    for (const [i, s] of steps.entries()) {
-      s.hidden = false;
-      const typed = s.querySelector<HTMLElement>(".typed");
-      if (typed) {
-        typed.textContent = "";
-        for (const ch of texts[i]!) {
-          typed.textContent += ch;
-          await wait(typed.classList.contains("paste") ? 6 : 12 + Math.random() * 8);
-        }
-        await wait(150);
-      } else if (s.classList.contains("log")) {
-        await wait(60);
-      } else {
-        await wait(50);
-      }
-    }
-    removeEventListener("keydown", stop);
-    removeEventListener("pointerdown", stop);
-    running = false;
-  }
-  if (!reduced && !sessionStorage.getItem("built")) {
-    sessionStorage.setItem("built", "1");
-    play();
-  }
-  term.addEventListener("click", (e) => {
-    if (!reduced && !(e.target as HTMLElement).closest("a")) play();
-  });
 </script>
 
 <style is:global>
@@ -187,94 +97,19 @@ const sections = ["about", "blog", "cv", "wiki"];
   .home {
     max-width: 50rem;
     margin: 0 auto;
-    padding-top: 1.5rem;
-    display: grid;
-    gap: 1.75rem;
-    font: 0.95rem/1.65 var(--mono);
+    padding-top: 3rem;
+    font: 0.95rem/1.85 var(--mono);
     color: var(--muted);
   }
 
-  /* an editor tab and a terminal window, so they read as file and shell */
-  .home .frame {
-    margin: 0;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .home .file {
-    background: var(--bg-alt);
-  }
-  .home .tabs {
-    display: flex;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    font-size: 0.8rem;
-  }
-  .home .tab {
-    padding: 0.4rem 1.1rem;
-    background: var(--bg-alt);
-    color: var(--strong);
-    border-right: 1px solid var(--border);
-    box-shadow: inset 0 2px 0 var(--accent);
-    margin-bottom: -1px;
-  }
-  .home .status {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1.5rem;
-    padding: 0.2rem 1rem;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--dim);
-    font-size: 0.75rem;
-  }
-  /* terminals stay dark, whatever the site theme is */
-  .home .term {
-    --term-bg: #0f0f0f;
-    background: var(--term-bg);
-    border-color: #2a2a2a;
-    color: #9d9d9d;
-  }
-  .home .titlebar {
-    position: relative;
-    padding: 0.4rem 1rem;
-    text-align: center;
-    background: #181818;
-    border-bottom: 1px solid #2a2a2a;
-    color: #7a7a7a;
-    font-size: 0.78rem;
-  }
-  .home .dots {
-    position: absolute;
-    left: 0.9rem;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    gap: 0.4rem;
-  }
-  .home .dots i {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: #3a3a3a;
-  }
   .home pre.nix {
     margin: 0;
-    padding: 1rem 1.25rem 1.1rem 0;
+    padding: 0 0 1rem;
     background: none !important;
     border: 0;
     border-radius: 0;
     overflow-x: auto;
     font: inherit;
-  }
-  .home .ln {
-    display: inline-block;
-    width: 3rem;
-    padding-right: 1.25rem;
-    text-align: right;
-    color: var(--dim);
-    opacity: 0.6;
-    user-select: none;
   }
   .home .c {
     color: var(--dim);
@@ -333,7 +168,7 @@ const sections = ["about", "blog", "cv", "wiki"];
     white-space: normal;
     cursor: default;
   }
-  /* opens upward in the lower half, because the scrolling pre clips it */
+  /* opens upward in the lower half; the pre scrolls sideways on phones and so clips below */
   .home .tip.up {
     top: auto;
     bottom: 1.9em;
@@ -350,55 +185,4 @@ const sections = ["about", "blog", "cv", "wiki"];
     display: block;
   }
 
-  /* the terminal; its height is fixed so the page doesn't grow while typing */
-  .home .term {
-    cursor: pointer;
-  }
-  .home .term .screen {
-    padding: 1rem 1.25rem 1.1rem;
-    min-height: calc(18 * 1.65em + 2.1rem);
-  }
-  .home .prompt {
-    color: #1aab8e;
-  }
-  .home .cmd {
-    color: #f0f0f0;
-  }
-  .home .log {
-    color: #6a6a6a;
-  }
-  .home .out {
-    color: #9d9d9d;
-    overflow-wrap: anywhere;
-  }
-  .home .term .dim {
-    color: #6a6a6a;
-  }
-  .home .tree {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .home .tree li + li {
-    margin: 0;
-  }
-  .home .tree a {
-    color: #5a8ee5;
-    text-decoration: none;
-    padding: 0 0.15rem;
-    border-radius: 3px;
-  }
-  .home .tree a:is(:hover, :focus-visible) {
-    background: #1aab8e;
-    color: #0f0f0f;
-    outline: none;
-  }
-  .home .cursor {
-    display: inline-block;
-    width: 0.55em;
-    height: 1.05em;
-    vertical-align: -0.2em;
-    background: #1aab8e;
-    opacity: 0.55;
-  }
 </style>

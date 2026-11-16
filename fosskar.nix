@@ -8,9 +8,19 @@
   # kubernetes at work, nixos everywhere else
   likes = [ "nix" "self-hosting" "local llms" "fixing things properly" ];
 
-  writing = { blog = "/blog/"; wiki = "/wiki/"; };
+  writing = {
+    blog = "/blog/";
+    wiki = "/wiki/";
+  };
 
-  work = { cv = "/cv/"; code = "https://github.com/fosskar"; };
+  work = {
+    about = "/about/";
+    cv = "/cv/";
+    code = "https://github.com/fosskar";
+  };
 
-  contact = { mail = "simon@nx3.eu"; matrix = "@fosskar:fosskar.de"; };
+  contact = {
+    mail = "simon@nx3.eu";
+    matrix = "@fosskar:fosskar.de";
+  };
 }
