@@ -94,10 +94,15 @@ const html = lines
 <style is:global>
   /* global: the expression's html is built as a string, which scoped styles
      cannot reach; every selector stays under .home */
+  /* centered on both axes in the space above the footer */
+  main:has(> .home) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .home {
-    max-width: 50rem;
-    margin: 0 auto;
-    padding-top: 3rem;
+    min-width: 0;
+    max-width: 100%;
     font: 0.95rem/1.85 var(--mono);
     color: var(--muted);
   }
