@@ -1,36 +1,83 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+import { published, postHref, postSlug } from "../lib/posts";
+import { noteHref, slugOf } from "../lib/notes";
+
+// every page a mistyped url could have meant, by the name nix would use
+const candidates: Record<string, string> = {
+  home: "/",
+  about: "/about/",
+  blog: "/blog/",
+  cv: "/cv/",
+  wiki: "/wiki/",
+};
+for (const p of published(await getCollection("blog")))
+  candidates[postSlug(p.id)] = postHref(p.id);
+for (const n of await getCollection("wiki")) candidates[slugOf(n.id)] = noteHref(n.id);
 ---
 
-<Layout title="404 — fosskar">
-  <div class="wrap">
-    <div class="card lost">
-      <h1>404</h1>
-      <p>
-        this page does not exist. try the <a href="/wiki/">wiki</a> or <a href="/">home</a>.
-      </p>
-    </div>
-  </div>
+<Layout title="404 · fosskar" noindex>
+  <pre class="err" id="err"><span class="red">error:</span> attribute '<span class="k" id="attr">this-page</span>' missing
+
+       <span id="hint">Did you mean one of <a href="/">home</a>, <a href="/blog/">blog</a> or <a href="/wiki/">wiki</a>?</span></pre>
+  <script
+    type="application/json"
+    id="candidates"
+    set:html={JSON.stringify(candidates)}
+  />
 </Layout>
 
+<script>
+  import { suggest } from "../lib/fosskar";
+
+  // the missing attribute is the last part of the requested path
+  const candidates: Record<string, string> = JSON.parse(
+    document.getElementById("candidates")!.textContent!,
+  );
+  const parts = location.pathname.split("/").filter(Boolean);
+  const name = decodeURIComponent(parts.at(-1) ?? "").replace(/\.html$/, "");
+  if (name) {
+    document.getElementById("attr")!.textContent = name;
+    const hits = suggest(name, Object.keys(candidates));
+    if (hits.length) {
+      const links = hits.map((h) => {
+        const a = document.createElement("a");
+        a.href = candidates[h]!;
+        a.textContent = h;
+        return a;
+      });
+      const hint = document.getElementById("hint")!;
+      hint.replaceChildren(
+        "Did you mean ",
+        ...(links.length === 1 ? [] : ["one of "]),
+        ...links.flatMap((a, i) => [
+          ...(i === 0 ? [] : [i === links.length - 1 ? " or " : ", "]),
+          a,
+        ]),
+        "?",
+      );
+    }
+  }
+</script>
+
 <style>
-  .wrap {
-    display: flex;
-    justify-content: center;
-    padding: 4rem 0;
+  .err {
+    margin: 4rem 0;
+    padding: 0;
+    background: none !important;
+    border: 0;
+    white-space: pre-wrap;
+    font: 1rem/1.85 var(--mono);
+    color: var(--text);
   }
-  .lost {
-    max-width: 24rem;
-    text-align: center;
-    padding: 2rem 2.5rem;
+  .red {
+    color: #e65b53;
   }
-  .lost h1 {
-    font-size: 3rem;
-    margin: 0 0 0.5rem;
+  .k {
+    color: var(--strong);
+  }
+  .err a {
     color: var(--accent);
-  }
-  .lost p {
-    color: var(--muted);
-    margin: 0;
   }
 </style>
