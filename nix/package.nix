@@ -19,7 +19,7 @@
     in
     {
       packages.default = pkgs.buildNpmPackage {
-        pname = "wiki";
+        pname = "website";
         version = "0.1.0";
 
         src = astroSrc;
