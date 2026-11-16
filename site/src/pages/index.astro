@@ -38,7 +38,7 @@ const facts = [
 const services = [
   {
     title: "nix & nixos",
-    text: "all my machines run from one flake: desktop, laptop, home servers and a vps.",
+    text: "a whole fleet runs from one flake: workstations, a nas, a remote builder, a vps, a small aarch64 home assistant box and the router.",
     points: [
       "clan-core and flake-parts",
       "generated secrets with clan vars",
@@ -118,10 +118,10 @@ const experience = [
       <h1>declarative.<br /><span class="outline">immutable.</span><br />ephemeral.</h1>
     </div>
     <div class="intro">
-      <p>
-        i'm simon, a devops engineer and sre. kubernetes and gitops at work,
-        nix everywhere else. i build infrastructure that nobody has to remember
-        how to set up.
+      <p class="lede">
+        <strong>i'm simon,</strong>
+        a devops engineer and sre. kubernetes and gitops at work, nix everywhere
+        else. i build infrastructure that nobody has to remember how to set up.
       </p>
       <Search hero />
       <p class="quick">
@@ -165,14 +165,14 @@ const experience = [
   <section id="work">
     <div class="label">
       <h2>selected work</h2>
-      <a href="/projects/">all projects →</a>
+      <a href="https://github.com/fosskar">github →</a>
     </div>
     <div class="bento">
       {
         projects.map((p, i) => (
           <a
             class:list={["card", "reveal", { wide: i === 0 }]}
-            href={`/projects/#${p.id}`}
+            href={p.data.repo ?? p.data.url}
           >
             <h3>{p.data.title}</h3>
             <p>{p.data.description}</p>
@@ -182,6 +182,10 @@ const experience = [
         ))
       }
     </div>
+    <p class="upstream">
+      beyond my own projects: when i run into a bug or a missing piece in
+      something i use, i open an issue or send a pull request upstream.
+    </p>
   </section>
 
   <section id="experience">
@@ -238,8 +242,8 @@ const experience = [
     padding: 7rem 0 4rem;
     margin: 0;
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 3rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5rem;
     align-items: end;
   }
   .hero h1 {
@@ -253,10 +257,23 @@ const experience = [
     color: transparent;
     -webkit-text-stroke: 1.5px color-mix(in srgb, var(--strong) 55%, transparent);
   }
-  .intro > p:first-child {
+  .lede {
     color: var(--muted);
-    font-size: 1.15rem;
+    font-size: 1rem;
     margin: 0 0 1.5rem;
+  }
+  .lede strong {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--strong);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .upstream {
+    margin: 1.25rem 0 0;
+    color: var(--muted);
   }
   .intro :global(.palette) {
     margin-bottom: 1rem;

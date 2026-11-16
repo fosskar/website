@@ -10,7 +10,7 @@ Content lives at the **repo root**, outside the app. `site/src/content.config.ts
 
 - `wiki/` → notes, routed **flat** as `/wiki/<basename>/` regardless of directory depth (vault-root `wiki/index.md` is the Obsidian home page, excluded via `!index.md`)
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
-- `projects/` → cards on `/projects/` (single page, ordered by `order`)
+- `projects/` → cards in the home page's selected work and on `/cv/` (ordered by `order`)
 
 Domain logic is centralized in `site/src/lib/`:
 

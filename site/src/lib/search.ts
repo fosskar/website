@@ -13,7 +13,12 @@ export interface SearchItem {
 interface Sources {
   projects: {
     id: string;
-    data: { title: string; description: string; order: number };
+    data: {
+      title: string;
+      description: string;
+      order: number;
+      repo?: string;
+    };
   }[];
   /** already published (drafts removed, newest first) */
   posts: { id: string; data: { title: string } }[];
@@ -60,7 +65,7 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
         group: "projects",
         title: p.data.title,
         hint: p.data.description,
-        href: `/projects/#${p.id.replace(/\.md$/, "")}`,
+        href: p.data.repo ?? "/#work",
       })),
     ...posts.map((p) => ({
       group: "blog",

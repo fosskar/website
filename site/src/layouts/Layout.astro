@@ -25,7 +25,7 @@ const {
 } = Astro.props;
 const nav = [
   { href: "/#focus", label: "what i do" },
-  { href: "/projects/", label: "projects" },
+  { href: "/#work", label: "projects" },
   { href: "/blog/", label: "blog" },
   { href: "/wiki/", label: "wiki" },
   { href: "/about/", label: "about" },
@@ -67,7 +67,7 @@ const items = searchItems({
     <header class:list={["site-header", { docked: !heroSearch }]}>
       <div class="bar">
         <a href="/" class="brand" translate="no">
-          <img src="/icon.svg" alt="" width="30" height="30" />fosskar
+          <img src="/avatar.png" alt="" width="32" height="32" />fosskar
         </a>
         <nav class="nav" aria-label="main">
           {
@@ -627,7 +627,7 @@ const items = searchItems({
     border-radius: 10px;
   }
   .brand img {
-    border-radius: 0;
+    border-radius: 50%;
   }
 
   /* ---- shared components ---- */

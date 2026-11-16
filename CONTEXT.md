@@ -18,5 +18,6 @@ should use these names, not synonyms.
 - **post** — one markdown file in `blog/`. **published** means not draft,
   listed newest first; a post's url is its id minus `.md` under `/blog/`.
   publication rules live in `site/src/lib/posts.ts`.
-- **project** — one markdown file in `projects/`, rendered as a card on the
-  projects page, ordered by frontmatter `order`.
+- **project** — one markdown file in `projects/`, rendered as a card in the
+  home page's selected work and listed on the cv, ordered by frontmatter
+  `order`.
