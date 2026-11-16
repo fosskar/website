@@ -1,0 +1,232 @@
+---
+// search field with a dropdown that opens on the first typed letter;
+// items come from the #search-items json that Layout renders once per page
+interface Props {
+  hero?: boolean;
+}
+const { hero = false } = Astro.props;
+---
+
+<div class="palette" data-search data-search-hero={hero ? "" : undefined}>
+  <div class="field glass">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m20 20-3.5-3.5"></path>
+    </svg>
+    <input
+      type="search"
+      placeholder="what are you looking for?"
+      aria-label="search the site"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <kbd>⌘K</kbd>
+  </div>
+  <ul class="glass" role="listbox" hidden></ul>
+</div>
+
+<script>
+  interface Item {
+    group: string;
+    title: string;
+    hint: string;
+    href: string;
+  }
+  const items: Item[] = JSON.parse(
+    document.getElementById("search-items")!.textContent!,
+  );
+  const dialog = document.querySelector<HTMLDialogElement>("#search-dialog")!;
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+  function setup(root: HTMLElement) {
+    const input = root.querySelector("input")!;
+    const ul = root.querySelector("ul")!;
+    let sel = 0;
+    const links = () => [...ul.querySelectorAll<HTMLAnchorElement>("a")];
+    const mark = () =>
+      links().forEach((a, i) => a.setAttribute("aria-selected", String(i === sel)));
+
+    function render() {
+      const q = input.value.trim().toLowerCase();
+      // the dropdown opens on the first typed letter and closes when empty
+      ul.hidden = !q;
+      if (!q) return;
+      const hits = items.filter((i) =>
+        `${i.group} ${i.title} ${i.hint}`.toLowerCase().includes(q),
+      );
+      let group = "";
+      ul.innerHTML = hits.length
+        ? hits
+            .map((i) => {
+              const head =
+                i.group !== group
+                  ? `<li class="group" role="presentation">${esc((group = i.group))}</li>`
+                  : "";
+              return `${head}<li><a href="${esc(i.href)}" role="option"><span>${esc(i.title)}${i.hint ? ` <small>${esc(i.hint)}</small>` : ""}</span></a></li>`;
+            })
+            .join("")
+        : `<li class="empty">nothing found. try “cv” or “nix”.</li>`;
+      sel = 0;
+      mark();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", () => (ul.hidden = !input.value.trim()));
+    input.addEventListener("keydown", (e) => {
+      const l = links();
+      if (e.key === "Escape" && input.value) {
+        input.value = "";
+        ul.hidden = true;
+        e.preventDefault();
+        return;
+      }
+      if (e.key === "ArrowDown") sel = Math.min(sel + 1, l.length - 1);
+      else if (e.key === "ArrowUp") sel = Math.max(sel - 1, 0);
+      else if (e.key === "Enter" && l[sel]) {
+        dialog.close();
+        l[sel].click();
+        return;
+      } else return;
+      e.preventDefault();
+      mark();
+      l[sel]?.scrollIntoView({ block: "nearest" });
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (!root.contains(e.target as Node)) ul.hidden = true;
+    });
+    ul.addEventListener("click", () => dialog.close());
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-search]").forEach(setup);
+
+  const open = () => {
+    dialog.showModal();
+    dialog.querySelector("input")!.focus();
+  };
+  document
+    .querySelectorAll("[data-search-open]")
+    .forEach((b) => b.addEventListener("click", open));
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      e.preventDefault();
+      open();
+    }
+  });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+
+  // the header search button docks once the hero search scrolls away
+  const hero = document.querySelector("[data-search-hero] .field");
+  const header = document.querySelector(".site-header")!;
+  if (hero) {
+    new IntersectionObserver(
+      ([e]) => header.classList.toggle("docked", !e.isIntersecting),
+      { rootMargin: "-68px 0px 0px 0px" },
+    ).observe(hero);
+  }
+</script>
+
+<style is:global>
+  /* field and dropdown are separate glass layers: a backdrop-filter nested
+     inside another one does not blur the page behind it */
+  .palette {
+    position: relative;
+    text-align: left;
+  }
+  .palette .field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.1rem;
+    border-radius: 16px;
+  }
+  .palette .field:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .palette .field svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--muted);
+    flex: none;
+  }
+  .palette input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 1.05rem;
+    padding: 1.1rem 0;
+    background: transparent;
+    border: 0;
+    color: var(--strong);
+    outline: none;
+  }
+  .palette input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .palette input::placeholder {
+    color: var(--muted);
+  }
+  .palette ul {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    z-index: 20;
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
+    max-height: 22rem;
+    overflow: auto;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-alt) 85%, transparent);
+  }
+  .palette ul[hidden] {
+    display: none;
+  }
+  .palette .group {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    padding: 0.6rem 0.75rem 0.3rem;
+  }
+  .palette .empty {
+    padding: 0.75rem;
+    color: var(--muted);
+  }
+  .palette li a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .palette li a small {
+    color: var(--muted);
+    margin-left: 0.4rem;
+  }
+  .palette li a[aria-selected="true"],
+  .palette li a:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--strong);
+  }
+  .palette li a[aria-selected="true"]::after {
+    content: "↵";
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+</style>
