@@ -6,7 +6,7 @@ const projects = (await getCollection("projects")).sort(
   (a, b) => a.data.order - b.data.order,
 );
 const skills = [
-  ["platform", "kubernetes, talos, cluster api, cilium, argocd, harbor"],
+  ["platform", "kubernetes, talos, argocd, gitlab ci, cilium, harbor"],
   ["systems", "nixos, clan-core, proxmox, zfs, openwrt"],
   ["code", "nix, go, rust, bash"],
   ["languages", "german (native), english (fluent)"],
@@ -51,7 +51,7 @@ const skills = [
       <div>
         <div class="item">
           <div class="head"><h3>devops engineer / sre</h3><span class="when">2023 — now</span></div>
-          <p>kubernetes platform, gitops with argocd, cluster api on proxmox, cilium networking, harbor registry.</p>
+          <p>on-prem kubernetes clusters with talos, gitops with argocd, ci/cd with gitlab ci.</p>
         </div>
         <div class="item">
           <div class="head"><h3>devops bootcamp</h3><span class="when">2022</span></div>

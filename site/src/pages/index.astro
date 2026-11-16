@@ -5,10 +5,23 @@ import { getCollection, render } from "astro:content";
 import { published, postHref } from "../lib/posts";
 import { noteHref } from "../lib/notes";
 
-const posts = published(await getCollection("blog")).slice(0, 3);
-const notes = (await getCollection("wiki"))
-  .sort((a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0))
-  .slice(0, 3);
+// newest posts and notes in one list
+const writing = [
+  ...published(await getCollection("blog")).map((p) => ({
+    kind: "blog",
+    title: p.data.title,
+    href: postHref(p.id),
+    date: p.data.date as Date | undefined,
+  })),
+  ...(await getCollection("wiki")).map((n) => ({
+    kind: "wiki",
+    title: n.data.title,
+    href: noteHref(n.id),
+    date: n.data.date,
+  })),
+]
+  .sort((a, b) => (b.date?.valueOf() ?? 0) - (a.date?.valueOf() ?? 0))
+  .slice(0, 4);
 const projects = (await getCollection("projects")).sort(
   (a, b) => a.data.order - b.data.order,
 );
@@ -26,32 +39,57 @@ const services = [
   {
     title: "nix & nixos",
     text: "all my machines run from one flake: desktop, laptop, home servers and a vps.",
-    points: ["clan-core and flake-parts", "generated secrets with clan vars", "ephemeral roots on zfs"],
+    points: [
+      "clan-core and flake-parts",
+      "generated secrets with clan vars",
+      "ephemeral roots on zfs",
+    ],
   },
   {
     title: "kubernetes & gitops",
-    text: "my day job: kubernetes platforms that can be rebuilt from git.",
-    points: ["talos and cluster api on proxmox", "argocd with sync waves", "cilium networking, harbor registry"],
+    text: "my day job: on-prem kubernetes clusters, run and changed through git.",
+    points: [
+      "talos and talosctl",
+      "gitops with argocd",
+      "ci/cd with gitlab ci",
+    ],
   },
   {
-    title: "nix builds & ci",
-    text: "builds that are cached, shared between machines and kept up to date.",
-    points: ["binary cache with harmonia", "remote builders", "automated flake input updates"],
+    title: "nix ci & builds",
+    text: "every flake i maintain gets built, cached and updated automatically.",
+    points: [
+      "nix ci with nixbot",
+      "binary cache with harmonia",
+      "remote builders, automated input updates",
+    ],
   },
   {
     title: "self-hosting",
-    text: "the services i rely on run on my own hardware.",
-    points: ["zfs storage and borg backups", "netbird mesh, public ingress on a vps", "monitoring with grafana and gatus"],
+    text: "a zfs-based home server and a vps on hetzner run the services i rely on.",
+    points: [
+      "zfs and other storage setups",
+      "backups with borg",
+      "mesh and p2p networking; netbird for remote access through the vps",
+      "monitoring with grafana, victoriametrics, gatus and beszel",
+    ],
   },
   {
-    title: "ai agents & local llms",
-    text: "running coding agents and models on my own terms.",
-    points: ["firecracker sandboxes for agents", "local llm hosting and benchmarks", "agent tooling: pi-pack, ssync"],
+    title: "local models & ai tooling",
+    text: "i run and test local models in my homelab and use them day to day.",
+    points: [
+      "llms, embedding and decision models",
+      "served with llama.cpp and vllm",
+      "regular benchmarks",
+      "own agent tooling: extensions, skills, microvm sandboxes",
+    ],
   },
   {
-    title: "writing it down",
-    text: "when something breaks and i fix it, i write down what worked and why.",
-    points: ["wiki notes on nixos, kubernetes, homelab", "longer pieces on the blog", "every guide ends with a verify step"],
+    title: "writing",
+    text: "when i feel like it and think someone could use it, i write it down.",
+    points: [
+      "wiki: short notes on nixos, kubernetes and homelab",
+      "blog: longer stories",
+    ],
   },
 ];
 
@@ -59,7 +97,7 @@ const experience = [
   {
     when: "2023 — now",
     title: "devops engineer / sre",
-    text: "kubernetes platform with argocd gitops, cluster api on proxmox, cilium, harbor.",
+    text: "on-prem kubernetes with talos, gitops with argocd, ci/cd with gitlab ci.",
   },
   {
     when: "2022",
@@ -147,7 +185,7 @@ const experience = [
   </section>
 
   <section id="experience">
-    <div class="label"><h2>experience</h2><span>since 2023</span></div>
+    <div class="label"><h2>experience</h2><a href="/cv/">full cv →</a></div>
     <div class="xp">
       {
         experience.map((x) => (
@@ -166,26 +204,17 @@ const experience = [
   <section id="writing">
     <div class="label"><h2>writing</h2><a href="/blog/">blog</a><a href="/wiki/">wiki</a></div>
     <div class="writing">
-      <div class="stack">
-        {
-          posts.map((p) => (
-            <a class="card reveal" href={postHref(p.id)}>
-              <b>{p.data.title}</b>
-              <time datetime={date(p.data.date)}>blog · {date(p.data.date)}</time>
-            </a>
-          ))
-        }
-      </div>
-      <div class="stack">
-        {
-          notes.map((n) => (
-            <a class="card reveal" href={noteHref(n.id)}>
-              <b>{n.data.title}</b>
-              <time>wiki{n.data.date && ` · ${date(n.data.date)}`}</time>
-            </a>
-          ))
-        }
-      </div>
+      {
+        writing.map((w) => (
+          <a class="card reveal" href={w.href}>
+            <b>{w.title}</b>
+            <time>
+              {w.kind}
+              {w.date && ` · ${date(w.date)}`}
+            </time>
+          </a>
+        ))
+      }
     </div>
   </section>
 
@@ -390,9 +419,6 @@ const experience = [
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
     align-items: start;
-  }
-  .writing .stack {
-    gap: 0.75rem;
   }
   .writing .card {
     display: flex;
