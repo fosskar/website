@@ -29,16 +29,16 @@ const { Content: Featured } = await render(projects[0]);
 const date = (d: Date) => d.toISOString().slice(0, 10);
 
 const facts = [
-  { label: "role", value: "devops engineer / sre · since 2023" },
+  { label: "role", value: "devops engineer / sre" },
+  { label: "since", value: "2023" },
   { label: "based in", value: "hamburg" },
-  { label: "focus", value: "nix & nixos · kubernetes & gitops" },
-  { label: "languages", value: "german (native) · english (fluent)" },
+  { label: "languages", value: "german · english" },
 ];
 
 const services = [
   {
     title: "nix & nixos",
-    text: "my machines run from one flake: workstations, a nas, a remote builder, a vps, a small aarch64 home assistant box and the router.",
+    text: "my whole fleet runs from one flake, from workstations to the router.",
     points: [
       "clan-core and flake-parts",
       "generated secrets with clan vars",
@@ -235,7 +235,7 @@ const experience = [
     scroll-margin-top: 6rem;
   }
   .hero {
-    padding: 7rem 0 4rem;
+    padding: 8rem 0 5rem;
     margin: 0;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -256,11 +256,12 @@ const experience = [
   .lede {
     color: var(--muted);
     font-size: 1rem;
-    margin: 0 0 1.5rem;
+    line-height: 1.7;
+    margin: 0 0 2.25rem;
   }
   .lede strong {
     display: block;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.75rem;
     color: var(--strong);
     font-size: 2rem;
     font-weight: 700;
@@ -268,7 +269,7 @@ const experience = [
     line-height: 1.1;
   }
   .intro :global(.palette) {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
   }
   .quick {
     font-size: 0.9rem;
@@ -287,7 +288,7 @@ const experience = [
   .facts {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    gap: 1.5rem;
     margin: 0 0 7rem;
   }
   .facts dt {
@@ -327,18 +328,20 @@ const experience = [
   .services {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    gap: 1.5rem;
   }
   .services .card {
-    padding: 1.75rem;
+    padding: 2rem;
   }
   .services h3 {
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.6rem;
     font-size: 1.2rem;
   }
   .services p {
-    margin: 0 0 1rem;
+    margin: 0 0 1.25rem;
     color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
   }
   .services ul {
     margin: 0;
@@ -346,7 +349,7 @@ const experience = [
     font-size: 0.92rem;
   }
   .services li {
-    margin: 0.3rem 0;
+    margin: 0.45rem 0;
   }
   .services li::marker {
     color: var(--accent);
@@ -355,7 +358,7 @@ const experience = [
   .bento {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    gap: 1.5rem;
   }
   /* 2x2 featured card + five single cells fill three rows exactly */
   .bento .wide {
