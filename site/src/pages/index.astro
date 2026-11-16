@@ -16,42 +16,42 @@ const { Content: Featured } = await render(projects[0]);
 const date = (d: Date) => d.toISOString().slice(0, 10);
 
 const facts = [
-  { label: "role", value: "devops engineer / sre" },
-  { label: "in devops since", value: "2023" },
-  { label: "focus", value: "kubernetes · nixos" },
-  { label: "languages", value: "german · english" },
+  { label: "role", value: "devops engineer / sre · since 2023" },
+  { label: "based in", value: "hamburg" },
+  { label: "focus", value: "nix & nixos · kubernetes & gitops" },
+  { label: "languages", value: "german (native) · english (fluent)" },
 ];
 
 const services = [
   {
-    title: "nixos infrastructure",
-    text: "fleets of machines declared in one flake and deployed from it.",
-    points: ["clan-core and flake-parts", "secrets and generated credentials", "ephemeral roots on zfs"],
+    title: "nix & nixos",
+    text: "all my machines run from one flake: desktop, laptop, home servers and a vps.",
+    points: ["clan-core and flake-parts", "generated secrets with clan vars", "ephemeral roots on zfs"],
   },
   {
-    title: "kubernetes platforms & gitops",
-    text: "clusters that are reproducible from git, from bootstrap to day two.",
-    points: ["talos and cluster api on proxmox", "argocd, sync waves, cilium", "harbor registry and retention"],
+    title: "kubernetes & gitops",
+    text: "my day job: kubernetes platforms that can be rebuilt from git.",
+    points: ["talos and cluster api on proxmox", "argocd with sync waves", "cilium networking, harbor registry"],
   },
   {
-    title: "nix ci & build infrastructure",
-    text: "fast, cached builds for flakes and automated input updates.",
-    points: ["binary caches", "remote builders", "flake ci and update automation"],
+    title: "nix builds & ci",
+    text: "builds that are cached, shared between machines and kept up to date.",
+    points: ["binary cache with harmonia", "remote builders", "automated flake input updates"],
   },
   {
-    title: "self-hosting & operations",
-    text: "services that run on your own hardware and stay observable.",
-    points: ["zfs storage and borg backups", "mesh networking with netbird", "monitoring, alerts, health checks"],
+    title: "self-hosting",
+    text: "the services i rely on run on my own hardware.",
+    points: ["zfs storage and borg backups", "netbird mesh, public ingress on a vps", "monitoring with grafana and gatus"],
   },
   {
-    title: "sandboxed ai agents",
-    text: "coding agents with a hard boundary around keys, network and tools.",
-    points: ["firecracker microvms on nixos", "egress and mcp tool policies", "local llm hosting"],
+    title: "ai agents & local llms",
+    text: "running coding agents and models on my own terms.",
+    points: ["firecracker sandboxes for agents", "local llm hosting and benchmarks", "agent tooling: pi-pack, ssync"],
   },
   {
-    title: "development environments",
-    text: "the same toolchain on every laptop and in ci, declared once.",
-    points: ["devshells and direnv", "flake templates", "migrating teams to nix"],
+    title: "writing it down",
+    text: "when something breaks and i fix it, i write down what worked and why.",
+    points: ["wiki notes on nixos, kubernetes, homelab", "longer pieces on the blog", "every guide ends with a verify step"],
   },
 ];
 
@@ -88,6 +88,7 @@ const experience = [
       <Search hero />
       <p class="quick">
         or straight to{" "}
+        <a href="mailto:simon@nx3.eu">mail</a>{" · "}
         <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix</a>{" · "}
         <a href="/cv/">cv</a>{" · "}
         <a href="https://github.com/fosskar">github</a>
@@ -191,6 +192,7 @@ const experience = [
   <section id="contact" class="card contact reveal">
     <h2>want to talk nix, kubernetes or anything else?</h2>
     <div class="links">
+      <a href="mailto:simon@nx3.eu">mail <span>simon@nx3.eu</span></a>
       <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix <span>@fosskar:fosskar.de</span></a>
       <a href="/cv/">cv <span>printable</span></a>
       <a href="https://github.com/fosskar">github <span>fosskar</span></a>

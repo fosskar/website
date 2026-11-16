@@ -24,6 +24,12 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
   return [
     {
       group: "contact",
+      title: "mail",
+      hint: "simon@nx3.eu",
+      href: "mailto:simon@nx3.eu",
+    },
+    {
+      group: "contact",
       title: "matrix",
       hint: "@fosskar:fosskar.de",
       href: "https://matrix.to/#/@fosskar:fosskar.de",
