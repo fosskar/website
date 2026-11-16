@@ -83,11 +83,11 @@ const html = lines
         }
         if (t.kind === "string") {
           const value = t.text.slice(1, -1);
-          if (sitePaths.has(value)) {
-            editable = t.path;
-            return `<a class="s" href="${esc(value)}" data-editable>"<span class="v" spellcheck="false" data-key="${t.path}" data-orig="${esc(value)}">${esc(value)}</span>"</a>`;
-          }
           const href = linkFor(value);
+          if (href && sitePaths.has(href)) {
+            editable = t.path;
+            return `<a class="s" href="${esc(href)}" data-editable>"<span class="v" spellcheck="false" data-key="${t.path}" data-orig="${esc(value)}">${esc(value)}</span>"</a>`;
+          }
           if (href) return `<a class="s" href="${esc(href)}">${text}</a>`;
           return `<span class="s">${text}</span>`;
         }
@@ -125,6 +125,7 @@ const html = lines
   import {
     checkSetting,
     didYouMean,
+    linkFor,
     settingTypes,
     suggest,
     type SettingName,
@@ -257,8 +258,9 @@ const html = lines
     v.addEventListener("blur", () => {
       v.contentEditable = "false";
       const value = v.textContent!.trim();
-      a.setAttribute("href", value);
-      if (Object.values(pages).includes(value)) return showError(v.dataset.key!);
+      const href = linkFor(value) ?? value;
+      a.setAttribute("href", href);
+      if (Object.values(pages).includes(href)) return showError(v.dataset.key!);
       const name = value.split("/").filter(Boolean).at(-1) ?? value;
       const k = Object.assign(document.createElement("span"), {
         className: "k",
@@ -280,7 +282,7 @@ const html = lines
     for (const a of paths) {
       const v = a.querySelector<HTMLElement>(".v")!;
       v.textContent = v.dataset.orig!;
-      a.setAttribute("href", v.dataset.orig!);
+      a.setAttribute("href", linkFor(v.dataset.orig!)!);
     }
     for (const el of nix.querySelectorAll<HTMLElement>("[data-err]")) showError(el.dataset.err!);
     save();

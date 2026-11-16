@@ -8,14 +8,14 @@
   likes = [ "nix" "self-hosting" "local llms" "fixing things properly" ];
 
   me = {
-    about = "/about/";
-    cv = "/cv/";
+    about = "./about/";
+    cv = "./cv/";
     code = "https://github.com/fosskar";
   };
 
   writing = {
-    blog = "/blog/";
-    wiki = "/wiki/";
+    blog = "./blog/";
+    wiki = "./wiki/";
   };
 
   contact = {

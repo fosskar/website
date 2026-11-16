@@ -97,6 +97,8 @@ export function checkSetting(
 /** where a value should link to, if anywhere */
 export function linkFor(value: string): string | undefined {
   if (value.startsWith("/")) return value;
+  // relative to the home page, the only page that shows fosskar.nix
+  if (value.startsWith("./")) return value.slice(1);
   if (/^https?:\/\//.test(value)) return value;
   if (/^[^@\s]+@[^@\s]+\.[a-z]+$/i.test(value)) return `mailto:${value}`;
   if (/^@[^:\s]+:\S+$/.test(value)) return `https://matrix.to/#/${value}`;

@@ -71,6 +71,7 @@ describe("tokenize", () => {
 describe("linkFor", () => {
   it("links site paths, urls, mail addresses and matrix ids", () => {
     expect(linkFor("/blog/")).toBe("/blog/");
+    expect(linkFor("./blog/")).toBe("/blog/");
     expect(linkFor("https://github.com/fosskar")).toBe(
       "https://github.com/fosskar",
     );
