@@ -36,11 +36,11 @@ const hovers: Record<string, string> = {
   me: "who i am and what i work on, my cv in english and german (page and pdf), and my code. double-click a path to edit it.",
   writing: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}. double-click a path to edit it.`,
   contact: "mail or matrix, whichever you prefer.",
-  "website.settings": "how this site looks. click a value and type, or step with ↑/↓. changes stay in this browser.",
+  "website.settings": "how this site looks. click a value to switch it. changes stay in this browser.",
   "website.settings.colorScheme": "the colour scheme of every page.",
   "website.settings.accent": "the colour of links and strings.",
   "website.settings.font": "the font of the text on the other pages.",
-  "website.settings.fontSize": "the base size in px; everything scales with it.",
+  "website.settings.fontSize": "the base size in px; everything scales with it. click to type a number, or step with ↑/↓.",
 };
 const setting = (path: string) =>
   path.startsWith("website.settings.")
@@ -74,7 +74,11 @@ const html = lines
         const name = t.path && setting(t.path);
         if (name && (t.kind === "string" || t.kind === "number")) {
           editable = t.path;
-          const v = `<span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="${t.path}" data-setting="${name}" data-key="${t.path}">${esc(t.text.replace(/^"|"$/g, ""))}</span>`;
+          const attrs = `data-setting="${name}" data-key="${t.path}" aria-label="${t.path}"`;
+          const v =
+            t.kind === "string"
+              ? `<button class="v" type="button" ${attrs}>${esc(t.text.slice(1, -1))}</button>`
+              : `<span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" ${attrs}>${text}</span>`;
           return t.kind === "string" ? `<span class="s">"${v}"</span>` : `<span class="s">${v}</span>`;
         }
         if (t.kind === "string") {
@@ -172,15 +176,25 @@ const html = lines
     getSelection()!.addRange(range);
   }
 
-  // website.settings: type a value, or step through the allowed ones
+  // website.settings: a click steps through the allowed strings; the number
+  // is typed, or stepped with the arrow keys
   const settings = [...nix.querySelectorAll<HTMLElement>("[data-setting]")];
   for (const el of settings) {
     const name = el.dataset.setting as SettingName;
     const type = settingTypes[name];
     el.textContent = String(current[name]);
+    if ("enum" in type) {
+      el.addEventListener("click", () => {
+        const values: readonly string[] = type.enum;
+        current = { ...current, [name]: values[(values.indexOf(String(current[name])) + 1) % values.length]! };
+        el.textContent = String(current[name]);
+        save();
+      });
+      continue;
+    }
     const commit = () => {
       const raw = el.textContent!.trim();
-      const value = "enum" in type || !/^-?\d+$/.test(raw) ? raw : Number(raw);
+      const value = /^-?\d+$/.test(raw) ? Number(raw) : raw;
       const error = checkSetting(name, value);
       showError(el.dataset.key!, error ? [error] : undefined);
       if (error) return;
@@ -200,13 +214,9 @@ const html = lines
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
         const step = e.key === "ArrowUp" ? 1 : -1;
-        const now = current[name];
-        if ("enum" in type) {
-          const i = (type.enum as readonly unknown[]).indexOf(now);
-          el.textContent = type.enum[(i + step + type.enum.length) % type.enum.length]!;
-        } else {
-          el.textContent = String(Math.min(type.max, Math.max(type.min, Number(now) + step)));
-        }
+        el.textContent = String(
+          Math.min(type.max, Math.max(type.min, Number(current[name]) + step)),
+        );
         commit();
         selectAll(el);
       }
@@ -328,6 +338,18 @@ const html = lines
     border-bottom-style: solid;
   }
   /* values a visitor can type into */
+  .home button.v {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-bottom: 1px dashed var(--string);
+    padding: 0;
+    cursor: pointer;
+  }
+  .home button.v:hover {
+    color: var(--accent-bright);
+  }
   .home .v[contenteditable="plaintext-only"] {
     border-bottom: 1px dashed var(--string);
     outline: none;

@@ -28,6 +28,6 @@
     colorScheme = "dark";
     accent = "teal";
     font = "inter";
-    fontSize = 16;
+    fontSize = 18;
   };
 }
