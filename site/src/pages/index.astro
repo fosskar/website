@@ -37,7 +37,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
-  .map((tokens, i) => {
+  .map((tokens) => {
     const code = tokens
       .map((t) => {
         const text = esc(t.text);
@@ -45,7 +45,7 @@ const html = lines
         if (t.kind === "attr") {
           const h = t.path && !t.path.includes(".") ? hovers[t.path] : undefined;
           if (!h) return `<span class="k">${text}</span>`;
-          return `<span class="k hover" tabindex="0">${text}<span class="tip${i >= lines.length / 2 ? " up" : ""}" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
+          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
         }
         if (t.kind === "string") {
           if (t.path === "colorScheme")
@@ -113,8 +113,13 @@ const html = lines
     background: none !important;
     border: 0;
     border-radius: 0;
-    overflow-x: auto;
     font: inherit;
+  }
+  /* sideways scrolling only where lines don't fit; it would clip the tooltips */
+  @media (max-width: 48rem) {
+    .home pre.nix {
+      overflow-x: auto;
+    }
   }
   .home .c {
     color: var(--dim);
@@ -159,7 +164,7 @@ const html = lines
     display: none;
     position: absolute;
     left: 0;
-    top: 1.9em;
+    bottom: 1.9em;
     z-index: 5;
     width: max-content;
     max-width: 24rem;
@@ -172,11 +177,6 @@ const html = lines
     color: var(--text);
     white-space: normal;
     cursor: default;
-  }
-  /* opens upward in the lower half; the pre scrolls sideways on phones and so clips below */
-  .home .tip.up {
-    top: auto;
-    bottom: 1.9em;
   }
   .home .tip .t {
     color: var(--accent);
