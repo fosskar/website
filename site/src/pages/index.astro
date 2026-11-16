@@ -1,522 +1,353 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Search from "../components/Search.astro";
-import { getCollection, render } from "astro:content";
-import { published, postHref } from "../lib/posts";
-import { noteHref } from "../lib/notes";
+import { getCollection } from "astro:content";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { published } from "../lib/posts";
+import { linkFor, tokenize, typeOf } from "../lib/fosskar";
+import { fosskar, storePath } from "../lib/site-data";
 
-// newest posts and notes in one list
-const writing = [
-  ...published(await getCollection("blog")).map((p) => ({
-    kind: "blog",
-    title: p.data.title,
-    href: postHref(p.id),
-    date: p.data.date as Date | undefined,
-  })),
-  ...(await getCollection("wiki")).map((n) => ({
-    kind: "wiki",
-    title: n.data.title,
-    href: noteHref(n.id),
-    date: n.data.date,
-  })),
-]
-  .sort((a, b) => (b.date?.valueOf() ?? 0) - (a.date?.valueOf() ?? 0))
-  .slice(0, 4);
-const projects = (await getCollection("projects")).sort(
-  (a, b) => a.data.order - b.data.order,
+// the page shows the file the site's data is evaluated from
+const source = readFileSync(resolve(process.cwd(), "../fosskar.nix"), "utf8").trimEnd();
+const lines = tokenize(source);
+
+const posts = published(await getCollection("blog"));
+const notes = (await getCollection("wiki")).sort(
+  (a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0),
 );
-const { Content: Featured } = await render(projects[0]);
-const date = (d: Date) => d.toISOString().slice(0, 10);
+const day = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
 
-const facts = [
-  { label: "role", value: "devops engineer / sre" },
-  { label: "since", value: "2023" },
-  { label: "based in", value: "hamburg" },
-  { label: "languages", value: "german · english" },
-];
+// hover text per top-level attribute, in both page languages
+const hovers: Record<string, { en: string; de: string }> = {
+  lang: {
+    en: "the language of this page. click the value to switch between en and de.",
+    de: "die sprache dieser seite. klick auf den wert, um zwischen en und de zu wechseln.",
+  },
+  colorScheme: {
+    en: "dark or light. click the value to switch; the choice is remembered.",
+    de: "dunkel oder hell. klick auf den wert zum umschalten; die wahl wird gespeichert.",
+  },
+  name: { en: "the person behind fosskar.", de: "die person hinter fosskar." },
+  role: {
+    en: "devops engineer and sre since 2023, in a team of four.",
+    de: "devops engineer und sre seit 2023, in einem team aus vier leuten.",
+  },
+  location: { en: "hamburg, germany.", de: "hamburg." },
+  likes: {
+    en: "what i spend my free time on. local llms means llama.cpp and vllm in my homelab, with regular benchmarks.",
+    de: "womit ich meine freizeit verbringe. lokale llms heißt llama.cpp und vllm im homelab, mit regelmäßigen benchmarks.",
+  },
+  writing: {
+    en: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}.`,
+    de: `blog: ${posts.length} ${posts.length === 1 ? "beitrag" : "beiträge"}, neuester vom ${day(posts[0]?.data.date)}. wiki: ${notes.length} notizen, neueste vom ${day(notes[0]?.data.date)}.`,
+  },
+  work: {
+    en: "my cv in english and german, and my code.",
+    de: "mein lebenslauf auf englisch und deutsch, und mein code.",
+  },
+  contact: {
+    en: "mail or matrix, whichever you prefer.",
+    de: "mail oder matrix, wie du magst.",
+  },
+};
+const types: Record<string, string> = Object.fromEntries(
+  Object.entries(fosskar).map(([k, v]) => [k, typeOf(v)]),
+);
 
-const services = [
-  {
-    title: "nix & nixos",
-    text: "my whole fleet runs from one flake, from workstations to the router.",
-    points: [
-      "clan-core and flake-parts",
-      "generated secrets with clan vars",
-      "ephemeral roots on zfs",
-    ],
-  },
-  {
-    title: "kubernetes & gitops",
-    text: "at work i run on-prem kubernetes clusters and change them through git.",
-    points: [
-      "talos and talosctl",
-      "gitops with argocd",
-      "ci/cd with gitlab ci",
-    ],
-  },
-  {
-    title: "nix ci & builds",
-    text: "ci builds every flake i maintain and keeps its inputs up to date.",
-    points: [
-      "nix ci with nixbot",
-      "binary cache with harmonia",
-      "remote builders, automated input updates",
-    ],
-  },
-  {
-    title: "self-hosting",
-    text: "a zfs-based home server and a vps on hetzner run the services i rely on.",
-    points: [
-      "zfs and other storage setups",
-      "backups with borg",
-      "mesh and p2p networking, with netbird for remote access through the vps",
-      "monitoring with grafana, victoriametrics, gatus and beszel",
-    ],
-  },
-  {
-    title: "local models & ai tooling",
-    text: "i run and test local models in my homelab and use them day to day.",
-    points: [
-      "llms, embedding and decision models",
-      "served with llama.cpp and vllm",
-      "regular benchmarks",
-      "own agent tooling: extensions, skills, microvm sandboxes",
-    ],
-  },
-  {
-    title: "writing",
-    text: "when i feel like it and think someone could use it, i write it down.",
-    points: [
-      "wiki: short notes on nixos, kubernetes and homelab",
-      "blog: longer stories",
-    ],
-  },
-];
+// german replacements for the values and comment that differ
+const german: Record<string, string> = {
+  "# kubernetes at work, nixos everywhere else": "# beruflich kubernetes, privat überall nixos",
+  '"self-hosting"': '"self-hosting"',
+  '"local llms"': '"lokale llms"',
+  '"fixing things properly"': '"dinge richtig reparieren"',
+};
 
-const experience = [
-  {
-    when: "2023 — now",
-    title: "devops engineer / sre",
-    text: "on-prem kubernetes with talos, gitops with argocd, ci/cd with gitlab ci.",
-  },
-  {
-    when: "2022",
-    title: "devops bootcamp",
-    text: "turned a long-running linux hobby into a profession.",
-  },
-];
+const unquote = (s: string) => s.slice(1, -1);
+const esc = (s: string) =>
+  s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// built as a string: a template inside <pre> would leak its own indentation
+const html = lines
+  .map((tokens) =>
+    tokens
+      .map((t) => {
+        const text = esc(t.text);
+        if (t.kind === "comment")
+          return `<span class="c" data-en="${text}" data-de="${esc(german[t.text] ?? t.text)}">${text}</span>`;
+        if (t.kind === "attr") {
+          const h = t.path && !t.path.includes(".") ? hovers[t.path] : undefined;
+          if (!h) return `<span class="k">${text}</span>`;
+          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="en">${esc(h.en)}</span><span class="de">${esc(h.de)}</span></span></span>`;
+        }
+        if (t.kind === "string") {
+          if (t.path === "lang" || t.path === "colorScheme")
+            return `<button class="opt" type="button" data-opt="${t.path}">${text}</button>`;
+          const href = linkFor(unquote(t.text));
+          if (href)
+            return `<a class="s" href="${esc(href)}"${t.path === "work.cv" ? ' data-href="cv"' : ""}>${text}</a>`;
+          return `<span class="s" data-en="${text}" data-de="${esc(german[t.text] ?? t.text)}">${text}</span>`;
+        }
+        if (t.kind === "punct") return `<span class="p">${text}</span>`;
+        return text;
+      })
+      .join(""),
+  )
+  .join("\n");
+const outPath = storePath ?? `/nix/store/…-website-0.1.0`;
+const sections = ["about", "blog", "cv", "wiki"];
 ---
 
 <Layout
-  title="fosskar — devops engineer, kubernetes and nix"
-  description="simon (fosskar): devops engineer and sre for kubernetes, gitops and nixos"
+  title={`${fosskar.name} · fosskar`}
+  description={`${fosskar.name} (fosskar): ${fosskar.role} in ${fosskar.location}. nix, nixos, kubernetes and gitops.`}
   wide
-  heroSearch
 >
-  <section class="hero">
-    <div class="reveal">
-      <h1>declarative.<br /><span class="outline">immutable.</span><br />ephemeral.</h1>
-    </div>
-    <div class="intro reveal">
-      <p class="lede">
-        <strong>i'm simon,</strong>
-        a devops engineer and sre. kubernetes and gitops at work, nix everywhere
-        else. i build infrastructure that nobody has to remember how to set up.
-      </p>
-      <Search hero />
-      <p class="quick">
-        or straight to{" "}
-        <a href="mailto:simon@nx3.eu">mail</a>{" · "}
-        <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix</a>{" · "}
-        <a href="/cv/">cv</a>{" · "}
-        <a href="https://github.com/fosskar">github</a>
-      </p>
-    </div>
-  </section>
+  <div class="home">
+    <pre class="nix" id="nix"><code set:html={html} /></pre>
 
-  <dl class="facts">
-    {
-      facts.map((f) => (
-        <div class="card reveal">
-          <dt>{f.label}</dt>
-          <dd>{f.value}</dd>
-        </div>
-      ))
-    }
-  </dl>
-
-  <section id="focus">
-    <div class="label reveal"><h2>what i love and what i do</h2></div>
-    <div class="services">
-      {
-        services.map((s) => (
-          <div class="card reveal">
-            <h3>{s.title}</h3>
-            <p>{s.text}</p>
-            <ul>
-              {s.points.map((p) => <li>{p}</li>)}
-            </ul>
-          </div>
-        ))
-      }
+    <div class="term" id="term">
+      <div class="cmd"><span class="prompt">$</span> <span class="typed">nix build github:fosskar/website --print-out-paths</span></div>
+      <div class="out path">{outPath}</div>
+      <div class="cmd"><span class="prompt">$</span> <span class="typed">ls -d result/*/</span></div>
+      <ul class="ls" aria-label="sections">
+        {sections.map((s) => <li><a href={`/${s}/`} data-href={s}><span class="dim">result/</span>{s}/</a></li>)}
+      </ul>
+      <div class="cmd"><span class="prompt">$</span> <span class="cursor"></span></div>
     </div>
-  </section>
-
-  <section id="work">
-    <div class="label reveal">
-      <h2>selected work</h2>
-      <a href="https://github.com/fosskar">github →</a>
-    </div>
-    <div class="bento">
-      {
-        projects.map((p, i) => (
-          <a
-            class:list={["card", "reveal", { wide: i === 0 }]}
-            href={p.data.repo ?? p.data.url}
-          >
-            <h3>{p.data.title}</h3>
-            <p>{p.data.description}</p>
-            {i === 0 && <div class="body"><Featured /></div>}
-            <small>{p.data.tags.slice(0, 3).join(" · ")}</small>
-          </a>
-        ))
-      }
-    </div>
-  </section>
-
-  <section id="experience">
-    <div class="label reveal"><h2>experience</h2><a href="/cv/">full cv →</a></div>
-    <div class="xp">
-      {
-        experience.map((x) => (
-          <div class="card reveal">
-            <span class="when">{x.when}</span>
-            <div>
-              <h3>{x.title}</h3>
-              <p>{x.text}</p>
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  </section>
-
-  <section id="writing">
-    <div class="label reveal"><h2>writing</h2><a href="/blog/">blog</a><a href="/wiki/">wiki</a></div>
-    <div class="writing">
-      {
-        writing.map((w) => (
-          <a class="card reveal" href={w.href}>
-            <b>{w.title}</b>
-            <time>
-              {w.kind}
-              {w.date && ` · ${date(w.date)}`}
-            </time>
-          </a>
-        ))
-      }
-    </div>
-  </section>
-
-  <section id="contact" class="card contact reveal">
-    <h2>want to talk nix, kubernetes or anything else?</h2>
-    <div class="links">
-      <a href="mailto:simon@nx3.eu">mail <span>simon@nx3.eu</span></a>
-      <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix <span>@fosskar:fosskar.de</span></a>
-      <a href="/cv/">cv <span>printable</span></a>
-      <a href="https://github.com/fosskar">github <span>fosskar</span></a>
-    </div>
-  </section>
+  </div>
 </Layout>
 
-<style>
-  section {
-    margin-bottom: 7rem;
-    scroll-margin-top: 6rem;
+<script>
+  const root = document.documentElement;
+  const nix = document.getElementById("nix")!;
+
+  // lang: swap the shown values and point cv/about at the german pages
+  function setLang(lang: string) {
+    nix.dataset.lang = lang;
+    nix.querySelectorAll<HTMLElement>("[data-en]").forEach((e) => {
+      e.textContent = e.dataset[lang as "en" | "de"]!;
+    });
+    document.querySelectorAll<HTMLAnchorElement>("[data-href]").forEach((a) => {
+      const s = a.dataset.href!;
+      if (s === "cv" || s === "about") a.href = lang === "de" ? `/${s}/de/` : `/${s}/`;
+    });
+    nix.querySelector<HTMLElement>('[data-opt="lang"]')!.textContent = `"${lang}"`;
   }
-  .hero {
-    padding: 8rem 0 9rem;
-    margin: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 5rem;
-    align-items: end;
+  function setScheme(scheme: string) {
+    root.dataset.theme = scheme;
+    nix.querySelector<HTMLElement>('[data-opt="colorScheme"]')!.textContent = `"${scheme}"`;
   }
-  .hero h1 {
-    font-size: clamp(3rem, 7.5vw, 6rem);
-    line-height: 0.95;
-    letter-spacing: -0.055em;
-    margin: 0;
-    font-weight: 750;
+  setLang(localStorage.getItem("lang") ?? nix.querySelector<HTMLElement>('[data-opt="lang"]')!.textContent!.slice(1, -1));
+  setScheme(root.dataset.theme!);
+  nix.querySelectorAll<HTMLButtonElement>(".opt").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.dataset.opt === "lang") {
+        const next = nix.dataset.lang === "en" ? "de" : "en";
+        localStorage.setItem("lang", next);
+        setLang(next);
+      } else {
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        localStorage.setItem("colorScheme", next);
+        setScheme(next);
+      }
+    }),
+  );
+
+  // the build plays once per session; the finished state is in the html
+  const term = document.getElementById("term")!;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduced && !sessionStorage.getItem("built")) {
+    sessionStorage.setItem("built", "1");
+    const steps = [...term.children] as HTMLElement[];
+    const typed = steps.map((s) => s.querySelector<HTMLElement>(".typed"));
+    const texts = typed.map((t) => t?.textContent ?? "");
+    steps.forEach((s) => (s.hidden = true));
+    let skip = false;
+    const stop = () => (skip = true);
+    addEventListener("keydown", stop, { once: true });
+    addEventListener("pointerdown", stop, { once: true });
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, skip ? 0 : ms));
+    (async () => {
+      await wait(500);
+      for (const [i, s] of steps.entries()) {
+        s.hidden = false;
+        const t = typed[i];
+        if (t) {
+          t.textContent = "";
+          for (const ch of texts[i]!) {
+            t.textContent += ch;
+            await wait(28 + Math.random() * 30);
+          }
+          await wait(260);
+        } else {
+          await wait(s.classList.contains("path") ? 700 : 150);
+        }
+      }
+    })();
   }
-  .hero h1 .outline {
-    color: transparent;
-    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--strong) 55%, transparent);
-  }
-  .lede {
+
+  // arrow keys move through the listing, enter opens
+  const links = [...term.querySelectorAll<HTMLAnchorElement>(".ls a")];
+  let sel = -1;
+  addEventListener("keydown", (e) => {
+    if ((e.target as HTMLElement).closest("input, textarea, dialog")) return;
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    sel = (sel + step + links.length) % links.length;
+    links[sel]!.focus();
+  });
+</script>
+
+<style is:global>
+  /* global: the expression's html is built as a string, which scoped styles
+     cannot reach; every selector stays under .home */
+  .home {
+    max-width: 46rem;
+    margin: 1rem auto 0;
+    font: 1rem/1.85 var(--mono);
     color: var(--muted);
-    font-size: 1rem;
-    line-height: 1.7;
-    margin: 0 0 2.25rem;
   }
-  .lede strong {
-    display: block;
-    margin-bottom: 0.75rem;
-    color: var(--strong);
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-  }
-  .intro :global(.palette) {
-    margin-bottom: 1.25rem;
-  }
-  .quick {
-    font-size: 0.9rem;
-    color: var(--dim);
+  .home pre.nix {
     margin: 0;
+    padding: 0;
+    background: none !important;
+    border: 0;
+    overflow: visible;
+    white-space: pre-wrap;
+    font: inherit;
   }
-  .quick a {
-    color: var(--text);
-    text-underline-offset: 3px;
-    text-decoration-color: var(--dim);
-  }
-  .quick a:hover {
-    color: var(--accent);
-  }
-
-  .facts {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin: 0 0 7rem;
-  }
-  .facts dt {
-    font-size: 0.75rem;
+  .home .c {
     color: var(--dim);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
   }
-  .facts dd {
-    margin: 0.25rem 0 0;
+  .home .k {
     color: var(--strong);
-    font-size: 1.05rem;
   }
-
-  .label {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    margin: 0 0 1.5rem;
+  .home .s,
+  .home .opt {
+    color: var(--string);
   }
-  .label h2 {
-    margin: 0;
-    font-size: 2.25rem;
-    letter-spacing: -0.04em;
-  }
-  .label span,
-  .label a {
+  .home .p {
     color: var(--dim);
-    font-family: var(--mono);
-    font-size: 0.85rem;
+  }
+  .home a.s {
     text-decoration: none;
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
   }
-  .label a:hover {
-    color: var(--accent);
+  .home a.s:hover {
+    color: var(--accent-bright);
+    border-bottom-style: solid;
   }
-
-  .services {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+  .home .opt {
+    font: inherit;
+    background: none;
+    border: 0;
+    border-bottom: 1px dashed var(--string);
+    padding: 0;
+    cursor: pointer;
   }
-  .services .card {
-    padding: 2rem;
-  }
-  .services h3 {
-    margin: 0 0 0.6rem;
-    font-size: 1.2rem;
-  }
-  .services p {
-    margin: 0 0 1.25rem;
-    color: var(--muted);
-    font-size: 0.95rem;
-    line-height: 1.65;
-  }
-  .services ul {
-    margin: 0;
-    padding-left: 1.1rem;
-    font-size: 0.92rem;
-  }
-  .services li {
-    margin: 0.45rem 0;
-  }
-  .services li::marker {
-    color: var(--accent);
+  .home .opt:hover {
+    color: var(--accent-bright);
   }
 
-  .bento {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+  /* hover info, like a language server in an editor */
+  .home .hover {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--dim);
   }
-  /* 2x2 featured card + five single cells fill three rows exactly */
-  .bento .wide {
-    grid-column: span 2;
-    grid-row: span 2;
-  }
-  .bento .body {
-    margin-top: 1rem;
-    color: var(--text);
-    font-size: 0.95rem;
-  }
-  .bento .body :global(p) {
-    color: var(--text);
-  }
-  .bento .card {
-    padding: 1.5rem 1.75rem;
-    display: flex;
-    flex-direction: column;
-  }
-  .bento h3 {
-    margin: 0 0 0.35rem;
-    font-size: 1.15rem;
-  }
-  .bento .wide h3 {
-    font-size: 1.75rem;
-    letter-spacing: -0.03em;
-  }
-  .bento p {
-    margin: 0;
-    color: var(--muted);
-  }
-  .bento small {
-    margin-top: auto;
-    padding-top: 1rem;
-    color: var(--dim);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-  }
-  .bento .card:hover h3 {
-    color: var(--accent);
-  }
-
-  .xp {
-    display: grid;
-    gap: 1rem;
-  }
-  .xp .card {
-    display: grid;
-    grid-template-columns: 10rem 1fr;
-    gap: 2rem;
-    padding: 1.5rem 1.75rem;
-  }
-  .xp .when {
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 0.85rem;
-    padding-top: 0.15rem;
-  }
-  .xp h3 {
-    margin: 0;
-    font-size: 1.05rem;
-  }
-  .xp p {
-    margin: 0.2rem 0 0;
-    color: var(--muted);
-  }
-
-  .writing {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    align-items: start;
-  }
-  .writing .card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .writing b {
-    color: var(--strong);
-    font-weight: 500;
-  }
-  .writing .card:hover b {
-    color: var(--accent);
-  }
-  .writing time {
-    color: var(--dim);
-    font-family: var(--mono);
-    font-size: 0.8rem;
-  }
-
-  .contact {
-    padding: 4rem;
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: 2rem;
-    align-items: center;
-  }
-  .contact h2 {
-    font-size: clamp(2rem, 4.5vw, 3.25rem);
-    letter-spacing: -0.045em;
-    margin: 0;
-    line-height: 1.02;
-  }
-  .contact .links {
-    display: grid;
-    gap: 0.6rem;
-  }
-  .contact .links a {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.9rem 1.1rem;
-    border-radius: 12px;
+  .home .tip {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 1.9em;
+    z-index: 5;
+    width: max-content;
+    max-width: 24rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-alt);
     border: 1px solid var(--border);
-    text-decoration: none;
-    color: var(--strong);
-    background: color-mix(in srgb, var(--bg) 40%, transparent);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: normal;
+    cursor: default;
   }
-  .contact .links a:hover {
-    border-color: var(--accent);
+  .home .tip .t {
+    color: var(--accent);
   }
-  .contact .links span {
+  .home .tip :is(.en, .de) {
+    display: block;
+    margin-top: 0.25rem;
     color: var(--muted);
   }
+  .home .nix:not([data-lang="de"]) .tip .de,
+  .home .nix[data-lang="de"] .tip .en {
+    display: none;
+  }
+  .home .hover:is(:hover, :focus-visible) .tip {
+    display: block;
+  }
 
-  @media (max-width: 60rem) {
-    .services,
-    .bento {
-      grid-template-columns: 1fr 1fr;
+  /* the build below the expression */
+  /* room for all five lines, so the page doesn't grow while the build types */
+  .home .term {
+    margin-top: 2.25rem;
+    min-height: calc(5 * 1.85em);
+  }
+  .home .prompt {
+    color: var(--accent);
+  }
+  .home .cmd {
+    color: var(--strong);
+  }
+  .home .out.path {
+    color: var(--dim);
+    overflow-wrap: anywhere;
+  }
+  .home .ls {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2rem;
+  }
+  .home .ls li + li {
+    margin: 0;
+  }
+  .home .ls a {
+    color: #5a8ee5;
+    text-decoration: none;
+    outline: none;
+    padding: 0 0.15rem;
+    margin: 0 -0.15rem;
+    border-radius: 3px;
+  }
+  .home .ls a:is(:hover, :focus-visible) {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .home .ls a:is(:hover, :focus-visible) .dim {
+    color: inherit;
+  }
+  .home .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+    background: var(--accent);
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
     }
   }
-  @media (max-width: 52rem) {
-    .hero,
-    .contact {
-      grid-template-columns: 1fr;
-    }
-    .hero {
-      padding-top: 4rem;
-    }
-    .facts {
-      grid-template-columns: 1fr 1fr;
-    }
-    .services,
-    .bento,
-    .writing {
-      grid-template-columns: 1fr;
-    }
-    .bento .wide {
-      grid-column: auto;
-      grid-row: auto;
-    }
-    .xp .card {
-      grid-template-columns: 1fr;
-      gap: 0.25rem;
-    }
-    .contact {
-      padding: 2rem;
+  @media (prefers-reduced-motion: reduce) {
+    .home .cursor {
+      animation: none;
     }
   }
 </style>

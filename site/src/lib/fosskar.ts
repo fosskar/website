@@ -1,0 +1,108 @@
+// fosskar.nix on the page: a small tokenizer for highlighting and linking
+// the source, plus the helpers the home page and the 404 page share.
+// the data itself comes from src/generated/site-data.json, written by nix.
+
+export interface Token {
+  kind: "comment" | "string" | "attr" | "punct" | "text";
+  text: string;
+  /** dotted attribute path of an attr name or of the value it holds */
+  path?: string;
+}
+
+const patterns: [Token["kind"], RegExp][] = [
+  ["comment", /^#.*/],
+  ["string", /^"(?:\\.|[^"\\])*"/],
+  ["attr", /^[A-Za-z_][\w'-]*(?=\s*=)/],
+  ["punct", /^[{}[\];=]/],
+  ["text", /^\s+|^[^\s"#{}[\];=]+/],
+];
+
+/** split nix source into lines of tokens; only the subset fosskar.nix uses */
+export function tokenize(src: string): Token[][] {
+  const scope: string[] = [];
+  let current: string | null = null;
+  const pathOf = (name?: string) =>
+    [...scope, ...(name ? [name] : current ? [current] : [])].join(".") ||
+    undefined;
+
+  return src.split("\n").map((line) => {
+    const tokens: Token[] = [];
+    let rest = line;
+    while (rest) {
+      const [kind, re] = patterns.find(([, re]) => re.test(rest))!;
+      const text = rest.match(re)![0];
+      rest = rest.slice(text.length);
+      if (kind === "attr") {
+        current = text;
+        tokens.push({ kind, text, path: pathOf(text) });
+        continue;
+      }
+      if (kind === "punct") {
+        if (text === "{" && current) {
+          scope.push(current);
+          current = null;
+        } else if (text === "}") {
+          scope.pop();
+        } else if (text === ";") {
+          current = null;
+        }
+      }
+      tokens.push(
+        kind === "string" ? { kind, text, path: pathOf() } : { kind, text },
+      );
+    }
+    return tokens;
+  });
+}
+
+/** where a value should link to, if anywhere */
+export function linkFor(value: string): string | undefined {
+  if (value.startsWith("/")) return value;
+  if (/^https?:\/\//.test(value)) return value;
+  if (/^[^@\s]+@[^@\s]+\.[a-z]+$/i.test(value)) return `mailto:${value}`;
+  if (/^@[^:\s]+:\S+$/.test(value)) return `https://matrix.to/#/${value}`;
+  return undefined;
+}
+
+/** a value's type as nix would describe it */
+export function typeOf(value: unknown): string {
+  if (typeof value === "string") return "string";
+  if (Array.isArray(value)) {
+    const n = value.length;
+    return `list of string, ${n} element${n === 1 ? "" : "s"}`;
+  }
+  const n = Object.keys(value as object).length;
+  return `attrset, ${n} attribute${n === 1 ? "" : "s"}`;
+}
+
+function distance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0]!;
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = row[j]!;
+      row[j] = Math.min(
+        row[j]! + 1,
+        row[j - 1]! + 1,
+        prev + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+      prev = tmp;
+    }
+  }
+  return row[b.length]!;
+}
+
+/** candidates close enough to `target` to be what was meant, nearest first */
+export function suggest(
+  target: string,
+  candidates: string[],
+  max = 3,
+): string[] {
+  return candidates
+    .map((c) => ({ c, d: distance(target.toLowerCase(), c.toLowerCase()) }))
+    .filter(({ c, d }) => d <= Math.max(2, Math.floor(c.length / 2)))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, max)
+    .map(({ c }) => c);
+}
