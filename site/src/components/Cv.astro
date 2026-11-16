@@ -33,7 +33,7 @@ const t = {
       education: "education",
     },
     profile:
-      "devops engineer and sre with a focus on nix/nixos, kubernetes and gitops, and a love for self-hosting and local llm inference. runs on-prem kubernetes with talos, argocd and gitlab ci at work and a nixos fleet at home. came to it from eleven years in machining, metrology and testing.",
+      "devops engineer and sre focused on nix/nixos, kubernetes and gitops. runs on-prem kubernetes with talos, argocd and gitlab ci at work, and a nixos fleet for self-hosting and local llm inference at home. before that, eleven years in machining, metrology and testing.",
     experience: [
       {
         when: "2023 — now",
@@ -41,8 +41,8 @@ const t = {
         where: "hamburg",
         points: [
           "operates around 20 on-prem kubernetes clusters in a team of four, split between devops and sre work",
-          "runs the cluster lifecycle with talos and talosctl",
-          "delivers workloads through gitops with argocd and helm",
+          "manages the cluster lifecycle with talos and talosctl",
+          "deploys workloads through gitops with argocd and helm",
           "builds and maintains ci/cd pipelines in gitlab ci",
           "automates configuration with ansible, manages secrets with vault",
         ],
@@ -60,7 +60,7 @@ const t = {
       },
       {
         when: "2012 — 2014",
-        title: "industrialisation china and eu; measurement and test mechanic",
+        title: "industrialisation china and eu / measurement and test mechanic",
         where: "thyssenkrupp Presta, esslingen",
       },
       {
@@ -70,21 +70,14 @@ const t = {
       },
     ] as Entry[],
     projects: {
-      nixfiles:
-        "nixos and clan-core configuration for a fleet of machines, from workstations and a nas to a vps, a remote builder and the openwrt router",
-      ssync:
-        "serverless peer-to-peer sync of coding-agent sessions across machines, encrypted with age, over iroh (rust)",
-      "pi-pack":
-        "skills, extensions and prompts for the pi coding agent, installable through a home-manager module",
-      fencr:
-        "firecracker microvm sandboxes for ai agents on nixos; keys stay on the host, egress and mcp tools are allow-listed",
-      "harbor-labeler":
-        "kubernetes cronjob that labels running images in harbor so retention can collect the rest",
+      nixfiles: "nixos and clan-core config for my whole fleet",
+      ssync: "p2p sync of coding-agent sessions, in rust",
+      "pi-pack": "skills and extensions for the pi coding agent",
+      fencr: "firecracker sandboxes for ai agents on nixos",
+      "harbor-labeler": "labels in-use images in harbor for retention",
     } as Record<string, string>,
-    upstream: {
-      title: "upstream",
-      text: "regular issues and pull requests to the open source projects i use.",
-    },
+    projectsIntro:
+      "besides the projects below, i regularly contribute issues and pull requests to the open source projects i use.",
     certifications: [
       { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
       { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
@@ -94,7 +87,7 @@ const t = {
       ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
       ["platform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
       ["operations", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
-      ["local ai", "llama.cpp, vllm, llm, embedding and decision models"],
+      ["local ai", "llama.cpp, vllm, llms, embedding models, decision models"],
       ["code", "nix, bash, rust, go"],
       ["languages", "german (native), english (fluent)"],
     ],
@@ -124,25 +117,25 @@ const t = {
       education: "ausbildung",
     },
     profile:
-      "devops engineer und sre mit schwerpunkt nix/nixos, kubernetes und gitops, mit einer vorliebe für self-hosting und lokale llm-inferenz. betreibt im job on-prem kubernetes mit talos, argocd und gitlab ci und privat eine nixos-flotte. davor elf jahre in zerspanung, messtechnik und testing.",
+      "devops engineer und sre mit schwerpunkt nix/nixos, kubernetes und gitops. betreibt beruflich on-prem-kubernetes mit talos, argocd und gitlab ci, privat mehrere nixos-rechner für self-hosting und lokale llm-inferenz. davor elf jahre in zerspanung, mess- und prüftechnik.",
     experience: [
       {
         when: "2023 — heute",
         title: "devops engineer / sre",
         where: "hamburg",
         points: [
-          "betrieb von rund 20 on-prem kubernetes-clustern im vierköpfigen team, aufgeteilt in devops- und sre-arbeit",
-          "cluster-lifecycle mit talos und talosctl",
-          "deployments per gitops mit argocd und helm",
+          "betrieb von rund 20 on-prem-kubernetes-clustern in einem vierköpfigen team, aufgeteilt auf devops- und sre-aufgaben",
+          "verwaltung des cluster-lebenszyklus mit talos und talosctl",
+          "deployment von workloads per gitops mit argocd und helm",
           "aufbau und pflege von ci/cd-pipelines in gitlab ci",
-          "konfigurationsautomatisierung mit ansible, secrets mit vault",
+          "automatisierung der konfiguration mit ansible, verwaltung von secrets mit vault",
         ],
       },
       {
         when: "2022 — 2023",
         title: "weiterbildung zum devops engineer",
         where: "bootcamp, hamburg",
-        text: "fünf monate vollzeit: linux, bash, docker, kubernetes, ci/cd mit jenkins und gitlab, elastic stack, scrum.",
+        text: "fünf monate in vollzeit: linux, bash, docker, kubernetes, ci/cd mit jenkins und gitlab, elastic stack, scrum.",
       },
       {
         when: "2018 — 2019",
@@ -151,7 +144,7 @@ const t = {
       },
       {
         when: "2012 — 2014",
-        title: "industrialisierung china und eu; mess- und versuchsmechaniker",
+        title: "industrialisierung (china und eu) / mess- und versuchsmechaniker",
         where: "thyssenkrupp Presta, esslingen",
       },
       {
@@ -161,31 +154,24 @@ const t = {
       },
     ] as Entry[],
     projects: {
-      nixfiles:
-        "nixos- und clan-core-konfiguration für eine rechnerflotte, von workstations und nas bis vps, remote builder und openwrt-router",
-      ssync:
-        "serverloser peer-to-peer-sync von coding-agent-sessions zwischen rechnern, mit age verschlüsselt, über iroh (rust)",
-      "pi-pack":
-        "skills, extensions und prompts für den pi coding agent, installierbar über ein home-manager-modul",
-      fencr:
-        "firecracker-microvm-sandboxes für ki-agenten auf nixos; schlüssel bleiben auf dem host, egress und mcp-tools per allow-list",
-      "harbor-labeler":
-        "kubernetes-cronjob, der laufende images in harbor markiert, damit die retention den rest aufräumt",
+      nixfiles: "nixos- und clan-core-konfiguration für alle meine rechner",
+      ssync: "p2p-synchronisierung von coding-agent-sessions, in rust",
+      "pi-pack": "skills und extensions für den coding agent pi",
+      fencr: "firecracker-sandboxes für ki-agenten auf nixos",
+      "harbor-labeler": "markiert genutzte images in harbor für die retention",
     } as Record<string, string>,
-    upstream: {
-      title: "upstream",
-      text: "regelmäßig issues und pull requests an die open-source-projekte, die ich nutze.",
-    },
+    projectsIntro:
+      "neben den eigenen projekten unten trage ich regelmäßig issues und pull requests zu den open-source-projekten bei, die ich nutze.",
     certifications: [
       { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
       { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
-      { when: "2023", title: "devops-engineer-diplom", where: "bootcamp" },
+      { when: "2023", title: "abschluss zum devops engineer", where: "bootcamp" },
     ] as Entry[],
     skills: [
       ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
       ["plattform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
       ["betrieb", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
-      ["lokale ki", "llama.cpp, vllm, llm-, embedding- und decision-modelle"],
+      ["lokale ki", "llama.cpp, vllm, llms, embedding-modelle, decision-modelle"],
       ["code", "nix, bash, rust, go"],
       ["sprachen", "deutsch (muttersprache), englisch (fließend)"],
     ],
@@ -324,6 +310,7 @@ const langs = [
   <section class="row">
     <h2>{t.sections.projects}</h2>
     <div>
+      <p class="intro">{t.projectsIntro}</p>
       {
         projects.map((p) => (
           <div class="item">
@@ -333,15 +320,11 @@ const langs = [
               ) : (
                 p.data.title
               )}
+              <span class="where"> · {t.projects[p.id]}</span>
             </h3>
-            <p>{t.projects[p.id]}</p>
           </div>
         ))
       }
-      <div class="item">
-        <h3>{t.upstream.title}</h3>
-        <p>{t.upstream.text}</p>
-      </div>
     </div>
   </section>
 
@@ -549,6 +532,10 @@ const langs = [
     margin: 0.1rem 0 0;
     color: var(--soft);
     font-size: 0.93rem;
+  }
+  .row p.intro {
+    margin: 0 0 0.6rem;
+    color: var(--soft);
   }
   .points {
     margin: 0.25rem 0 0;
