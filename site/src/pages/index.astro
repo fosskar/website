@@ -64,7 +64,8 @@ const html = lines
         const text = esc(t.text);
         if (t.kind === "comment") {
           if (t.text !== "# fosskar.nix") return `<span class="c">${text}</span>`;
-          return `<span class="c">${text}<span class="modified" hidden> [+]</span></span>`;
+          // the revert button sits in this line, so showing it moves nothing
+          return `<span class="c">${text}<span class="modified" hidden> [+] <button class="restore" id="restore" type="button" title="revert to fosskar.nix" aria-label="revert to fosskar.nix"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6.5A5 5 0 1 1 3 9.5" /><path d="M3.5 2.5v4h4" /></svg></button></span></span>`;
         }
         if (t.kind === "attr") {
           const h = t.path ? hovers[t.path] : undefined;
@@ -117,7 +118,6 @@ const html = lines
       id="nix"
       data-defaults={JSON.stringify(fosskar.website.settings)}
       data-pages={JSON.stringify(pages)}><code set:html={html} /></pre>
-    <button class="restore" id="restore" type="button" hidden>$ git restore fosskar.nix</button>
   </div>
 </Layout>
 
@@ -164,7 +164,7 @@ const html = lines
       Object.entries(current).filter(([k, v]) => v !== defaults[k as SettingName]),
     );
     const dirty = Object.keys(changed).length > 0;
-    modified.hidden = restore.hidden = !dirty;
+    modified.hidden = !dirty;
     if (dirty) localStorage.setItem("settings", JSON.stringify(changed));
     else localStorage.removeItem("settings");
     window.applySettings(current);
@@ -292,11 +292,12 @@ const html = lines
 <style is:global>
   /* global: the expression's html is built as a string, which scoped styles
      cannot reach; every selector stays under .home */
-  /* centered on both axes in the space above the footer */
+  /* centered horizontally; top-aligned, so errors and the revert button
+     appearing below a line never move what's above it */
   main:has(> .home) {
     display: flex;
-    align-items: center;
     justify-content: center;
+    padding-top: 4rem;
   }
   .home {
     min-width: 0;
@@ -377,12 +378,22 @@ const html = lines
     color: var(--accent);
   }
   .home .restore {
-    font: inherit;
-    color: var(--dim);
+    display: inline-flex;
+    vertical-align: -0.15em;
+    padding: 0;
     background: none;
     border: 0;
-    padding: 0;
+    color: var(--dim);
     cursor: pointer;
+  }
+  .home .restore svg {
+    width: 1em;
+    height: 1em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .home .restore:hover {
     color: var(--accent);
