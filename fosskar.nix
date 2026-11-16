@@ -8,15 +8,15 @@
   # kubernetes at work, nixos everywhere else
   likes = [ "nix" "self-hosting" "local llms" "fixing things properly" ];
 
-  writing = {
-    blog = "/blog/";
-    wiki = "/wiki/";
-  };
-
-  work = {
+  me = {
     about = "/about/";
     cv = "/cv/";
     code = "https://github.com/fosskar";
+  };
+
+  writing = {
+    blog = "/blog/";
+    wiki = "/wiki/";
   };
 
   contact = {

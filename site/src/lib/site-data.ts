@@ -8,8 +8,8 @@ export interface Fosskar {
   role: string;
   location: string;
   likes: string[];
+  me: Record<string, string>;
   writing: Record<string, string>;
-  work: Record<string, string>;
   contact: Record<string, string>;
 }
 
