@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# the cv page and its pdfs carry the full name; keep them out of search
+Disallow: /cv/
 
 Sitemap: https://bliki.fosskar.eu/sitemap-index.xml

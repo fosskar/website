@@ -1,6 +1,7 @@
 ---
-// the cv follows the site theme on screen and prints as a light pdf of up
-// to two pages. the name is letter outlines, not text: scrapers and search
+// the cv follows the site theme on screen. the nix `cv` package prints it
+// with the print styles below into one pdf per language, at most two pages
+// each. the name is letter outlines, not text: scrapers and search
 // engines cannot read the surname, which is also blurred on screen and
 // sharp in print.
 import { getCollection } from "astro:content";
@@ -103,7 +104,7 @@ const t = {
         where: "Ewo Fluid Power",
       },
     ] as Entry[],
-    print: "print / save as pdf",
+    pdf: { label: "download pdf", href: "/cv/cv.pdf", file: "cv-simon.pdf" },
   },
   de: {
     role: "devops engineer & sre · nix, kubernetes, gitops",
@@ -187,7 +188,7 @@ const t = {
         where: "Ewo Fluid Power",
       },
     ] as Entry[],
-    print: "drucken / als pdf speichern",
+    pdf: { label: "pdf herunterladen", href: "/cv/de/lebenslauf.pdf", file: "lebenslauf-simon.pdf" },
   },
 }[lang];
 
@@ -388,17 +389,12 @@ const langs = [
       ))
     }
   </nav>
-  <button type="button" data-print>{t.print}</button>
+  <a class="pdf" href={t.pdf.href} download={t.pdf.file}>{t.pdf.label}</a>
 </div>
 
-<script>
-  document
-    .querySelectorAll("[data-print]")
-    .forEach((b) => b.addEventListener("click", () => print()));
-</script>
 
 <style>
-  /* screen: site theme on a frosted card; print swaps in the paper palette */
+  /* screen: site theme on a flat card; print swaps in the paper palette */
   .sheet {
     --ink: var(--strong);
     --soft: var(--muted);
@@ -603,15 +599,9 @@ const langs = [
     gap: 1rem;
     font-size: 0.85rem;
   }
-  .tools button {
-    font: inherit;
+  .tools .pdf {
     color: var(--text);
-    background: none;
-    border: 0;
-    text-decoration: underline;
     text-underline-offset: 3px;
-    cursor: pointer;
-    padding: 0;
   }
   .lang-switch {
     display: flex;

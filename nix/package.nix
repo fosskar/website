@@ -22,30 +22,12 @@
       pname = "website";
       version = "0.1.0";
 
-      # each section of the built site is also its own package, so
-      # `nix flake show` lists the real sitemap and `nix build .#blog` works
-      sections = [
-        "about"
-        "blog"
-        "cv"
-        "wiki"
-      ];
+      # what the site reads at build time: the evaluated fosskar.nix
+      siteData = pkgs.writeText "site-data.json" (builtins.toJSON { fosskar = import ../fosskar.nix; });
 
-      # what the site reads at build time: the evaluated fosskar.nix and the
-      # package names for the sitemap; names come from the variables above so
-      # building the data never forces the site derivation
-      siteData = pkgs.writeText "site-data.json" (
-        builtins.toJSON {
-          fosskar = import ../fosskar.nix;
-          packages = {
-            default = "${pname}-${version}";
-          }
-          // lib.genAttrs sections (s: "${pname}-${s}");
-        }
-      );
-
-      site = pkgs.buildNpmPackage {
-        inherit pname version;
+      unwrapped = pkgs.buildNpmPackage {
+        pname = "${pname}-unwrapped";
+        inherit version;
 
         src = astroSrc;
         sourceRoot = "${astroSrc.name}/site";
@@ -62,7 +44,7 @@
           cp ${siteData} src/generated/site-data.json
         '';
 
-        # the site prints its own store path in the footer
+        # the site prints its store path; `website` below swaps in its own
         buildPhase = ''
           runHook preBuild
           SITE_STORE_PATH=$out npm run build
@@ -74,14 +56,59 @@
           cp -r dist $out
           runHook postInstall
         '';
-
-        passthru = { inherit siteData; };
       };
+
+      # the cv pages printed to pdf by headless chromium; a local http server
+      # is needed because the pages load assets from absolute paths
+      cv =
+        pkgs.runCommand "${pname}-cv-${version}"
+          {
+            nativeBuildInputs = [
+              pkgs.chromium
+              pkgs.python3
+            ];
+            FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
+          }
+          ''
+            export HOME=$TMPDIR
+            python3 -m http.server 8080 --bind 127.0.0.1 --directory ${unwrapped} &
+            server=$!
+            python3 - <<'PY'
+            import time, urllib.request
+            for _ in range(50):
+                try:
+                    urllib.request.urlopen("http://127.0.0.1:8080/")
+                    break
+                except OSError:
+                    time.sleep(0.1)
+            else:
+                raise SystemExit("http server for the cv pdf did not start")
+            PY
+            mkdir -p $out
+            print() {
+              chromium --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+                --user-data-dir="$TMPDIR/chromium" --no-pdf-header-footer \
+                --virtual-time-budget=5000 --print-to-pdf="$out/$2" "http://127.0.0.1:8080$1"
+            }
+            print /cv/ cv.pdf
+            print /cv/de/ lebenslauf.pdf
+            kill $server
+          '';
+
+      website = pkgs.runCommand "${pname}-${version}" { passthru = { inherit siteData; }; } ''
+        cp -r ${unwrapped} $out
+        chmod -R u+w $out
+        cp ${cv}/cv.pdf $out/cv/cv.pdf
+        cp ${cv}/lebenslauf.pdf $out/cv/de/lebenslauf.pdf
+        # the pages show the store path of the site; make it this output's
+        find $out -name '*.html' -exec \
+          sed -i "s|$(basename ${unwrapped})|$(basename $out)|g" {} +
+      '';
     in
     {
       packages = {
-        default = site;
-      }
-      // lib.genAttrs sections (s: pkgs.runCommand "${pname}-${s}" { } "ln -s ${site}/${s} $out");
+        default = website;
+        inherit cv;
+      };
     };
 }
