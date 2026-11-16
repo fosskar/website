@@ -37,9 +37,9 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
     },
     {
       group: "pages",
-      title: "services",
-      hint: "what i can do for you",
-      href: "/#services",
+      title: "what i do",
+      hint: "what i love and what i do",
+      href: "/#focus",
     },
     { group: "pages", title: "about", hint: "who i am", href: "/about/" },
     ...[...projects]

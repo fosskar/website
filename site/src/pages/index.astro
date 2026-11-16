@@ -18,7 +18,7 @@ const date = (d: Date) => d.toISOString().slice(0, 10);
 const facts = [
   { label: "role", value: "devops engineer / sre" },
   { label: "in devops since", value: "2023" },
-  { label: "looking for", value: "nix roles · freelance" },
+  { label: "focus", value: "kubernetes · nixos" },
   { label: "languages", value: "german · english" },
 ];
 
@@ -77,8 +77,7 @@ const experience = [
 >
   <section class="hero">
     <div>
-      <span class="status">open to nix &amp; platform roles</span>
-      <h1>declare it.<br /><span class="outline">rebuild it.</span><br />forget it.</h1>
+      <h1>declarative.<br /><span class="outline">reproducible.</span><br />ephemeral.</h1>
     </div>
     <div class="intro">
       <p>
@@ -107,8 +106,8 @@ const experience = [
     }
   </dl>
 
-  <section id="services">
-    <div class="label"><h2>what i can do for you</h2><span>services</span></div>
+  <section id="focus">
+    <div class="label"><h2>what i love and what i do</h2></div>
     <div class="services">
       {
         services.map((s) => (
@@ -190,7 +189,7 @@ const experience = [
   </section>
 
   <section id="contact" class="card contact reveal">
-    <h2>looking for someone who speaks nix and kubernetes?</h2>
+    <h2>want to talk nix, kubernetes or anything else?</h2>
     <div class="links">
       <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix <span>@fosskar:fosskar.de</span></a>
       <a href="/cv/">cv <span>printable</span></a>
@@ -212,26 +211,11 @@ const experience = [
     gap: 3rem;
     align-items: end;
   }
-  .status {
-    font-size: 0.85rem;
-    color: var(--muted);
-    display: inline-flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .status::before {
-    content: "";
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-  }
   .hero h1 {
     font-size: clamp(3rem, 7.5vw, 6rem);
     line-height: 0.95;
     letter-spacing: -0.055em;
-    margin: 1.25rem 0 0;
+    margin: 0;
     font-weight: 750;
   }
   .hero h1 .outline {
