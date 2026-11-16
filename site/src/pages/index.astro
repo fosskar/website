@@ -1,84 +1,498 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Social from "../components/Social.astro";
-import EntryCard from "../components/EntryCard.astro";
-import { getCollection } from "astro:content";
+import Search from "../components/Search.astro";
+import { getCollection, render } from "astro:content";
 import { published, postHref } from "../lib/posts";
 import { noteHref } from "../lib/notes";
 
 const posts = published(await getCollection("blog")).slice(0, 3);
 const notes = (await getCollection("wiki"))
   .sort((a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0))
-  .slice(0, 5);
+  .slice(0, 3);
+const projects = (await getCollection("projects")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+const { Content: Featured } = await render(projects[0]);
+const date = (d: Date) => d.toISOString().slice(0, 10);
+
+const facts = [
+  { label: "role", value: "devops engineer / sre" },
+  { label: "in devops since", value: "2023" },
+  { label: "looking for", value: "nix roles · freelance" },
+  { label: "languages", value: "german · english" },
+];
+
+const services = [
+  {
+    title: "nixos infrastructure",
+    text: "fleets of machines declared in one flake and deployed from it.",
+    points: ["clan-core and flake-parts", "secrets and generated credentials", "ephemeral roots on zfs"],
+  },
+  {
+    title: "kubernetes platforms & gitops",
+    text: "clusters that are reproducible from git, from bootstrap to day two.",
+    points: ["talos and cluster api on proxmox", "argocd, sync waves, cilium", "harbor registry and retention"],
+  },
+  {
+    title: "nix ci & build infrastructure",
+    text: "fast, cached builds for flakes and automated input updates.",
+    points: ["binary caches", "remote builders", "flake ci and update automation"],
+  },
+  {
+    title: "self-hosting & operations",
+    text: "services that run on your own hardware and stay observable.",
+    points: ["zfs storage and borg backups", "mesh networking with netbird", "monitoring, alerts, health checks"],
+  },
+  {
+    title: "sandboxed ai agents",
+    text: "coding agents with a hard boundary around keys, network and tools.",
+    points: ["firecracker microvms on nixos", "egress and mcp tool policies", "local llm hosting"],
+  },
+  {
+    title: "development environments",
+    text: "the same toolchain on every laptop and in ci, declared once.",
+    points: ["devshells and direnv", "flake templates", "migrating teams to nix"],
+  },
+];
+
+const experience = [
+  {
+    when: "2023 — now",
+    title: "devops engineer / sre",
+    text: "kubernetes platform with argocd gitops, cluster api on proxmox, cilium, harbor.",
+  },
+  {
+    when: "2022",
+    title: "devops bootcamp",
+    text: "turned a long-running linux hobby into a profession.",
+  },
+];
 ---
 
-<Layout title="fosskar" description="half blog, half wiki — notes on kubernetes, homelab, and nixos">
+<Layout
+  title="fosskar — devops engineer, kubernetes and nix"
+  description="simon (fosskar): devops engineer and sre for kubernetes, gitops and nixos"
+  wide
+  heroSearch
+>
   <section class="hero">
-    <h1>hi, i’m fosskar</h1>
-    <p class="tagline">
-      this site is half blog, half wiki about kubernetes, homelab, and nixos:
-      most pages start from a real problem, and
-      the point is to keep the useful part — what worked, why it worked, and
-      what tradeoff was being made.
-    </p>
-    <Social buttons />
+    <div>
+      <span class="status">open to nix &amp; platform roles</span>
+      <h1>declare it.<br /><span class="outline">rebuild it.</span><br />forget it.</h1>
+    </div>
+    <div class="intro">
+      <p>
+        i'm simon, a devops engineer and sre. kubernetes and gitops at work,
+        nix everywhere else. i build infrastructure that nobody has to remember
+        how to set up.
+      </p>
+      <Search hero />
+      <p class="quick">
+        or straight to{" "}
+        <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix</a>{" · "}
+        <a href="/cv/">cv</a>{" · "}
+        <a href="https://github.com/fosskar">github</a>
+      </p>
+    </div>
   </section>
 
-  <section>
-    <div class="section-head">
-      <h2>latest posts</h2>
-      <a class="view-all" href="/blog/">view all →</a>
-    </div>
-    {posts.length === 0 && <p class="muted">nothing here yet.</p>}
-    <div class="stack">
+  <dl class="facts">
+    {
+      facts.map((f) => (
+        <div class="card">
+          <dt>{f.label}</dt>
+          <dd>{f.value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <section id="services">
+    <div class="label"><h2>what i can do for you</h2><span>services</span></div>
+    <div class="services">
       {
-        posts.map((post) => (
-          <EntryCard
-            href={postHref(post.id)}
-            title={post.data.title}
-            description={post.data.description}
-            date={post.data.date}
-          />
+        services.map((s) => (
+          <div class="card reveal">
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+            <ul>
+              {s.points.map((p) => <li>{p}</li>)}
+            </ul>
+          </div>
         ))
       }
     </div>
   </section>
 
-  <section>
-    <div class="section-head">
-      <h2>recent wiki notes</h2>
-      <a class="view-all" href="/wiki/">view all →</a>
+  <section id="work">
+    <div class="label">
+      <h2>selected work</h2>
+      <a href="/projects/">all projects →</a>
     </div>
-    {notes.length === 0 && <p class="muted">nothing here yet.</p>}
-    <div class="stack">
+    <div class="bento">
       {
-        notes.map((note) => (
-          <EntryCard
-            href={noteHref(note.id)}
-            title={note.data.title}
-            date={note.data.date}
-            compact
-          />
+        projects.map((p, i) => (
+          <a
+            class:list={["card", "reveal", { wide: i === 0 }]}
+            href={`/projects/#${p.id}`}
+          >
+            <h3>{p.data.title}</h3>
+            <p>{p.data.description}</p>
+            {i === 0 && <div class="body"><Featured /></div>}
+            <small>{p.data.tags.slice(0, 3).join(" · ")}</small>
+          </a>
         ))
       }
+    </div>
+  </section>
+
+  <section id="experience">
+    <div class="label"><h2>experience</h2><span>since 2023</span></div>
+    <div class="xp">
+      {
+        experience.map((x) => (
+          <div class="card reveal">
+            <span class="when">{x.when}</span>
+            <div>
+              <h3>{x.title}</h3>
+              <p>{x.text}</p>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="writing">
+    <div class="label"><h2>writing</h2><a href="/blog/">blog</a><a href="/wiki/">wiki</a></div>
+    <div class="writing">
+      <div class="stack">
+        {
+          posts.map((p) => (
+            <a class="card reveal" href={postHref(p.id)}>
+              <b>{p.data.title}</b>
+              <time datetime={date(p.data.date)}>blog · {date(p.data.date)}</time>
+            </a>
+          ))
+        }
+      </div>
+      <div class="stack">
+        {
+          notes.map((n) => (
+            <a class="card reveal" href={noteHref(n.id)}>
+              <b>{n.data.title}</b>
+              <time>wiki{n.data.date && ` · ${date(n.data.date)}`}</time>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="card contact reveal">
+    <h2>looking for someone who speaks nix and kubernetes?</h2>
+    <div class="links">
+      <a href="https://matrix.to/#/@fosskar:fosskar.de">matrix <span>@fosskar:fosskar.de</span></a>
+      <a href="/cv/">cv <span>printable</span></a>
+      <a href="https://github.com/fosskar">github <span>fosskar</span></a>
     </div>
   </section>
 </Layout>
 
 <style>
+  section {
+    margin-bottom: 7rem;
+    scroll-margin-top: 6rem;
+  }
   .hero {
-    display: flex;
-    flex-direction: column;
+    padding: 7rem 0 4rem;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3rem;
+    align-items: end;
+  }
+  .status {
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: inline-flex;
+    gap: 0.5rem;
     align-items: center;
-    text-align: center;
-    padding: 1.5rem 0 1rem;
+  }
+  .status::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
   }
   .hero h1 {
-    margin: 1rem 0 0.25rem;
+    font-size: clamp(3rem, 7.5vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+    margin: 1.25rem 0 0;
+    font-weight: 750;
   }
-  .tagline {
+  .hero h1 .outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--strong) 55%, transparent);
+  }
+  .intro > p:first-child {
     color: var(--muted);
-    max-width: 36rem;
-    margin: 0.5rem 0 1.25rem;
+    font-size: 1.15rem;
+    margin: 0 0 1.5rem;
+  }
+  .intro :global(.palette) {
+    margin-bottom: 1rem;
+  }
+  .quick {
+    font-size: 0.9rem;
+    color: var(--dim);
+    margin: 0;
+  }
+  .quick a {
+    color: var(--text);
+    text-underline-offset: 3px;
+    text-decoration-color: var(--dim);
+  }
+  .quick a:hover {
+    color: var(--accent);
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin: 0 0 7rem;
+  }
+  .facts dt {
+    font-size: 0.75rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .facts dd {
+    margin: 0.25rem 0 0;
+    color: var(--strong);
+    font-size: 1.05rem;
+  }
+
+  .label {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin: 0 0 1.5rem;
+  }
+  .label h2 {
+    margin: 0;
+    font-size: 2.25rem;
+    letter-spacing: -0.04em;
+  }
+  .label span,
+  .label a {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .label a:hover {
+    color: var(--accent);
+  }
+
+  .services {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  .services .card {
+    padding: 1.75rem;
+  }
+  .services h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+  }
+  .services p {
+    margin: 0 0 1rem;
+    color: var(--muted);
+  }
+  .services ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.92rem;
+  }
+  .services li {
+    margin: 0.3rem 0;
+  }
+  .services li::marker {
+    color: var(--accent);
+  }
+
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  /* 2x2 featured card + five single cells fill three rows exactly */
+  .bento .wide {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .bento .body {
+    margin-top: 1rem;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  .bento .body :global(p) {
+    color: var(--text);
+  }
+  .bento .card {
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .bento h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+  }
+  .bento .wide h3 {
+    font-size: 1.75rem;
+    letter-spacing: -0.03em;
+  }
+  .bento p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .bento small {
+    margin-top: auto;
+    padding-top: 1rem;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+  .bento .card:hover h3 {
+    color: var(--accent);
+  }
+
+  .xp {
+    display: grid;
+    gap: 1rem;
+  }
+  .xp .card {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: 2rem;
+    padding: 1.5rem 1.75rem;
+  }
+  .xp .when {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding-top: 0.15rem;
+  }
+  .xp h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .xp p {
+    margin: 0.2rem 0 0;
+    color: var(--muted);
+  }
+
+  .writing {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    align-items: start;
+  }
+  .writing .stack {
+    gap: 0.75rem;
+  }
+  .writing .card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .writing b {
+    color: var(--strong);
+    font-weight: 500;
+  }
+  .writing .card:hover b {
+    color: var(--accent);
+  }
+  .writing time {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  .contact {
+    padding: 4rem;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 2rem;
+    align-items: center;
+  }
+  .contact h2 {
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    letter-spacing: -0.045em;
+    margin: 0;
+    line-height: 1.02;
+  }
+  .contact .links {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .contact .links a {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--strong);
+    background: color-mix(in srgb, var(--bg) 40%, transparent);
+  }
+  .contact .links a:hover {
+    border-color: var(--accent);
+  }
+  .contact .links span {
+    color: var(--muted);
+  }
+
+  @media (max-width: 60rem) {
+    .services,
+    .bento {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 52rem) {
+    .hero,
+    .contact {
+      grid-template-columns: 1fr;
+    }
+    .hero {
+      padding-top: 4rem;
+    }
+    .facts {
+      grid-template-columns: 1fr 1fr;
+    }
+    .services,
+    .bento,
+    .writing {
+      grid-template-columns: 1fr;
+    }
+    .bento .wide {
+      grid-column: auto;
+      grid-row: auto;
+    }
+    .xp .card {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+    .contact {
+      padding: 2rem;
+    }
   }
 </style>

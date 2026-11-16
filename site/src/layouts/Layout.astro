@@ -1,20 +1,39 @@
 ---
 import Social from "../components/Social.astro";
+import Search from "../components/Search.astro";
+import { getCollection } from "astro:content";
+import { published } from "../lib/posts";
+import { searchItems } from "../lib/search";
 
 interface Props {
   title: string;
   description?: string;
   lang?: string;
+  /** full-width main column (home, cv); articles keep the reading width */
+  wide?: boolean;
+  /** the page has its own hero search; the header button docks on scroll */
+  heroSearch?: boolean;
 }
-const { title, description, lang = "en" } = Astro.props;
+const {
+  title,
+  description,
+  lang = "en",
+  wide = false,
+  heroSearch = false,
+} = Astro.props;
 const nav = [
-  { href: "/", label: "home" },
+  { href: "/#services", label: "services" },
+  { href: "/projects/", label: "projects" },
   { href: "/blog/", label: "blog" },
   { href: "/wiki/", label: "wiki" },
-  { href: "/projects/", label: "projects" },
   { href: "/about/", label: "about" },
 ];
 const path = Astro.url.pathname;
+const items = searchItems({
+  projects: await getCollection("projects"),
+  posts: published(await getCollection("blog")),
+  notes: await getCollection("wiki"),
+});
 ---
 
 <!doctype html>
@@ -26,7 +45,7 @@ const path = Astro.url.pathname;
     <meta name="generator" content={Astro.generator} />
     <meta
       name="theme-color"
-      content="#202020"
+      content="#1c1c1c"
       media="(prefers-color-scheme: dark)"
     />
     <meta
@@ -38,36 +57,68 @@ const path = Astro.url.pathname;
     <title>{title}</title>
   </head>
   <body>
+    <div class="aurora" aria-hidden="true">
+      <span class="a"></span><span class="b"></span><span class="c"></span>
+    </div>
     <a class="skip" href="#content">skip to content</a>
-    <header>
-      <nav>
-        <a href="/" class="brand" translate="no">fosskar</a>
-        <div class="links">
+    <header class:list={["site-header", { docked: !heroSearch }]}>
+      <div class="bar">
+        <a href="/" class="brand" translate="no">
+          <img src="/icon.svg" alt="" width="30" height="30" />fosskar
+        </a>
+        <nav class="nav" aria-label="main">
           {
             nav.map((item) => (
               <a
                 href={item.href}
                 class:list={{
                   active:
-                    item.href === "/"
-                      ? path === "/"
-                      : path.startsWith(item.href),
+                    !item.href.startsWith("/#") && path.startsWith(item.href),
                 }}
               >
                 {item.label}
               </a>
             ))
           }
-        </div>
-      </nav>
+          <button class="search-btn glass" type="button" data-search-open>
+            search <kbd>⌘K</kbd>
+          </button>
+        </nav>
+        <details class="menu">
+          <summary aria-label="menu">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg
+            >
+          </summary>
+          <nav aria-label="main">
+            {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+            <button type="button" data-search-open>search</button>
+          </nav>
+        </details>
+      </div>
     </header>
-    <main id="content">
+    <main id="content" class:list={{ wide }}>
       <slot />
     </main>
     <footer>
-      <span>© {new Date().getFullYear()} fosskar</span>
-      <Social />
+      <div class="bar">
+        <span>© {new Date().getFullYear()} fosskar</span>
+        <Social />
+      </div>
     </footer>
+    <dialog id="search-dialog" aria-label="search">
+      <Search />
+    </dialog>
+    <script
+      type="application/json"
+      id="search-items"
+      set:html={JSON.stringify(items)}
+    />
     <button id="to-top" aria-label="back to top" hidden>
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -110,6 +161,23 @@ const path = Astro.url.pathname;
           h.appendChild(a);
         });
     </script>
+    <script>
+      // card borders light up where the cursor is
+      const lit = document.querySelectorAll<HTMLElement>(
+        ".card, .palette .field",
+      );
+      document.addEventListener(
+        "pointermove",
+        (e) => {
+          for (const el of lit) {
+            const r = el.getBoundingClientRect();
+            el.style.setProperty("--cx", `${e.clientX - r.left}px`);
+            el.style.setProperty("--cy", `${e.clientY - r.top}px`);
+          }
+        },
+        { passive: true },
+      );
+    </script>
   </body>
 </html>
 
@@ -118,37 +186,34 @@ const path = Astro.url.pathname;
      from it in both modes to keep link text at 4.5:1 contrast */
   :root {
     color-scheme: dark light;
-    --bg: #202020;
-    --bg-alt: #282828;
+    --bg: #1c1c1c;
+    --bg-alt: #242424;
     --border: #303030;
-    --text: #cccccc;
+    --text: #d0d0d0;
+    --strong: #f2f2f2;
     --muted: #9d9d9d;
-    --dim: #616161;
+    --dim: #6f6f6f;
     --accent: #1aab8e;
     --accent-bright: #1abc9c;
-    font-family: system-ui, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", monospace;
+    font-family: "Inter", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
       --bg: #fafafa;
-      --bg-alt: #f2f2f2;
+      --bg-alt: #f1f1f1;
       --border: #e0e0e0;
-      --text: #181818;
+      --text: #262626;
+      --strong: #0e0e0e;
       --muted: #616161;
-      --dim: #9d9d9d;
+      --dim: #8a8a8a;
       --accent: #0b6e5b;
       --accent-bright: #085446;
     }
   }
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 5rem;
-  }
-  /* header nav wraps to two rows on narrow screens */
-  @media (max-width: 30rem) {
-    html {
-      scroll-padding-top: 8rem;
-    }
+    scroll-padding-top: 5.5rem;
   }
   @media (prefers-reduced-motion: reduce) {
     html {
@@ -166,7 +231,7 @@ const path = Astro.url.pathname;
     position: absolute;
     left: 1rem;
     top: -4rem;
-    z-index: 20;
+    z-index: 60;
     padding: 0.5rem 1rem;
     background: var(--bg-alt);
     border: 1px solid var(--border);
@@ -183,6 +248,7 @@ const path = Astro.url.pathname;
     background: var(--bg);
     color: var(--text);
     line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
     touch-action: manipulation;
     -webkit-tap-highlight-color: color-mix(
       in srgb,
@@ -194,86 +260,270 @@ const path = Astro.url.pathname;
     flex-direction: column;
   }
 
-  /* ---- header ---- */
-  header {
+  /* ---- aurora: large, heavily blurred, slowly drifting colour fields ---- */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .aurora span {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(140px);
+  }
+  .aurora .a {
+    width: 55rem;
+    height: 40rem;
+    background: #1aab8e;
+    opacity: 0.14;
+    top: -20rem;
+    left: -15rem;
+    animation: drift 70s ease-in-out infinite alternate;
+  }
+  .aurora .b {
+    width: 45rem;
+    height: 35rem;
+    background: #3b7dd8;
+    opacity: 0.09;
+    top: 10rem;
+    right: -18rem;
+    animation: drift 90s ease-in-out infinite alternate-reverse;
+  }
+  .aurora .c {
+    width: 40rem;
+    height: 30rem;
+    background: #7a5cc7;
+    opacity: 0.06;
+    bottom: -18rem;
+    left: 25%;
+    animation: drift 110s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    to {
+      transform: translate(8rem, 5rem) scale(1.1);
+    }
+  }
+  @media (prefers-color-scheme: light) {
+    .aurora .a {
+      opacity: 0.1;
+    }
+    .aurora .b {
+      opacity: 0.06;
+    }
+    .aurora .c {
+      opacity: 0.04;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aurora span {
+      animation: none;
+    }
+  }
+
+  /* ---- frosted glass surface ---- */
+  .glass,
+  .card {
+    background: color-mix(in srgb, var(--bg-alt) 45%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--strong) 9%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--strong) 6%, transparent),
+      0 10px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ---- header: full width bar; nav collapses into a menu below 48rem ---- */
+  .site-header {
     position: sticky;
     top: 0;
-    z-index: 10;
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
   }
-  header nav {
-    max-width: 46rem;
+  .bar {
+    max-width: 76rem;
     margin: 0 auto;
-    padding: 0.5rem 1rem;
+    padding: 0 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
+  }
+  .site-header .bar {
+    height: 4.25rem;
   }
   .brand {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
-    font-weight: 700;
-    font-size: 1.05rem;
+    gap: 0.65rem;
+    font-weight: 650;
+    font-size: 1.1rem;
+    color: var(--strong);
     text-decoration: none;
-    color: var(--text);
   }
-  .brand:hover {
-    color: var(--accent);
+  .brand img {
+    width: 1.9rem;
+    height: 1.9rem;
   }
-  .links {
+  .site-header .nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.125rem;
-  }
-  .links a {
-    display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 0.95rem;
-    padding: 0 0.5rem;
-    border-radius: 8px;
-    transition:
-      color 0.15s ease,
-      background 0.15s ease;
+    gap: 2rem;
   }
-  .links a:hover {
+  .site-header .nav a {
     color: var(--text);
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    text-decoration: none;
+    font-size: 0.98rem;
   }
-  .links a.active {
+  .site-header .nav a:hover,
+  .site-header .nav a.active {
     color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  /* collapsed to zero width until docked, so the nav sits flush right */
+  .search-btn {
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--muted);
+    border-radius: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.6rem;
+    align-items: center;
+    height: 2.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 0;
+    margin-left: -2rem;
+    padding: 0;
+    border-width: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      max-width 0.3s,
+      margin 0.3s,
+      padding 0.3s,
+      opacity 0.2s;
+  }
+  .docked .search-btn {
+    max-width: 9rem;
+    margin-left: 0;
+    padding: 0 0.7rem;
+    border-width: 1px !important;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .search-btn:hover {
+    color: var(--strong);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .search-btn {
+      transition: none;
+    }
+  }
+  kbd {
+    font: 500 0.75rem var(--mono);
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg);
+  }
+  .menu {
+    display: none;
+  }
+  .menu summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: var(--strong);
+  }
+  .menu summary::-webkit-details-marker {
+    display: none;
+  }
+  .menu summary svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: block;
+  }
+  .menu nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 4.25rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    padding: 0.5rem 1.25rem 1rem;
+  }
+  .menu nav :is(a, button) {
+    padding: 0.75rem 0;
+    color: var(--strong);
+    text-decoration: none;
+    border: 0;
+    border-top: 1px solid var(--border);
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .menu nav a:first-child {
+    border-top: 0;
+  }
+  @media (max-width: 48rem) {
+    .site-header .nav {
+      display: none;
+    }
+    .menu {
+      display: block;
+    }
+    .bar {
+      padding: 0 1.25rem;
+    }
+  }
+
+  /* ---- search dialog ---- */
+  #search-dialog {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    width: min(40rem, 92vw);
+    margin-top: 15vh;
+    overflow: visible;
+  }
+  #search-dialog::backdrop {
+    background: color-mix(in srgb, var(--bg) 40%, transparent);
+    backdrop-filter: blur(8px);
   }
 
   main {
     max-width: 46rem;
     margin: 0 auto;
-    padding: 2rem 1rem 3rem;
+    padding: 2.5rem 1rem 4rem;
     width: 100%;
     flex: 1;
     overflow-wrap: break-word;
+  }
+  main.wide {
+    max-width: 76rem;
+    padding: 0 2rem 4rem;
+  }
+  @media (max-width: 48rem) {
+    main.wide {
+      padding: 0 1.25rem 3rem;
+    }
   }
 
   /* ---- footer ---- */
   footer {
     border-top: 1px solid var(--border);
-    max-width: 46rem;
-    margin: 0 auto;
-    padding: 1rem;
-    width: 100%;
     color: var(--muted);
     font-size: 0.85rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  }
+  footer .bar {
+    padding-block: 1rem;
     gap: 1rem;
   }
 
@@ -282,15 +532,17 @@ const path = Astro.url.pathname;
   h2,
   h3 {
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     text-wrap: balance;
+    color: var(--strong);
   }
   h1 {
-    font-size: 2rem;
+    font-size: 2.25rem;
+    letter-spacing: -0.03em;
     margin: 0 0 0.75rem;
   }
   h2 {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     margin: 2rem 0 0.75rem;
   }
   h3 {
@@ -310,13 +562,13 @@ const path = Astro.url.pathname;
     background: var(--bg-alt);
     padding: 0.1em 0.35em;
     border-radius: 4px;
-    font-family: ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.9em;
   }
   pre {
-    background: var(--bg-alt) !important;
+    background: color-mix(in srgb, var(--bg-alt) 85%, transparent) !important;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 1rem;
     overflow-x: auto;
   }
@@ -366,22 +618,47 @@ const path = Astro.url.pathname;
     max-width: 100%;
     border-radius: 10px;
   }
+  .brand img {
+    border-radius: 0;
+  }
 
   /* ---- shared components ---- */
   .card {
+    position: relative;
     display: block;
-    background: var(--bg-alt);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
     transition: border-color 0.15s ease;
+  }
+  /* border glow that follows the cursor; --cx/--cy set by the layout script */
+  .card::before,
+  .palette .field::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(
+      18rem circle at var(--cx, -100%) var(--cy, -100%),
+      var(--accent),
+      transparent 60%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  @media (hover: none) {
+    .card::before,
+    .palette .field::before {
+      display: none;
+    }
   }
   a.card {
     color: inherit;
     text-decoration: none;
-  }
-  a.card:hover {
-    border-color: var(--dim);
   }
   .card h2 {
     margin: 0 0 0.25rem;
@@ -441,6 +718,23 @@ const path = Astro.url.pathname;
     flex-wrap: wrap;
     margin: 0.25rem 0;
   }
+  /* blur-in on scroll where scroll-driven animations exist */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 60%;
+      }
+      @keyframes reveal {
+        from {
+          opacity: 0;
+          filter: blur(10px);
+          transform: translateY(24px);
+        }
+      }
+    }
+  }
 
   /* ---- back to top ---- */
   #to-top {
@@ -484,5 +778,18 @@ const path = Astro.url.pathname;
   }
   :is(h2, h3, h4):hover .heading-anchor {
     opacity: 1;
+  }
+
+  @media print {
+    .aurora,
+    .site-header,
+    footer,
+    #to-top,
+    #search-dialog {
+      display: none !important;
+    }
+    body {
+      background: none;
+    }
   }
 </style>

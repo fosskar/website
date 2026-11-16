@@ -18,7 +18,7 @@ const rendered = await Promise.all(
   <div class="stack">
     {
       rendered.map(({ project, Content }) => (
-        <section class="card project">
+        <section class="card project" id={project.id}>
           <h2>
             {project.data.url ? (
               <a href={project.data.url}>{project.data.title}</a>
