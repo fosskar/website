@@ -1,4 +1,4 @@
-# wiki
+# website
 
 personal site built with [astro](https://astro.build): blog, wiki, and projects. content lives as plain markdown at the repo root — `wiki/` (obsidian vault), `blog/`, `projects/` — the astro project in `site/`, nix modules in `nix/`.
 

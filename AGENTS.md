@@ -80,7 +80,7 @@ Site code:
 - node from the devshell (nodejs 24 — npm ≥ 11.10 enforces `site/.npmrc` `min-release-age=3`, a 3-day supply-chain cooldown when changing deps); `package.json` engines require node ≥ 22.12
 - `site/node_modules` is a **read-only nix store symlink** — never `npm install` into it, and never let it get git-tracked (flake source then ships a broken symlink and astro prerender fails); astro/vite caches are relocated to `site/.cache/` for this reason
 - formatting via `nix fmt` (treefmt: nixfmt + prettier with `embeddedLanguageFormatting = "off"` so markdown code fences stay untouched); markdownlint-cli2 and marksman available in the devshell
-- VCS is plain git (`main`, origin = github.com/fosskar/wiki); commit messages are `<area>: <description>` lowercase (`site:`, `wiki:`, `nix:`, `docs:`); no GitHub Actions — CI is Hercules effects only
+- VCS is plain git (`main`, origin = github.com/fosskar/website); commit messages are `<area>: <description>` lowercase (`site:`, `wiki:`, `nix:`, `docs:`); no GitHub Actions — CI is Hercules effects only
 
 ## Testing & QA
 
