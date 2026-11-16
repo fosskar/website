@@ -1,7 +1,7 @@
 // site search (header ⌘k and the home hero): one flat list, rendered once
 // into every page and filtered client-side.
-import { noteHref } from "./notes";
-import { postHref } from "./posts";
+import { noteHref, slugOf } from "./notes";
+import { postHref, postSlug } from "./posts";
 
 export interface SearchItem {
   group: string;
@@ -80,4 +80,21 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
       href: noteHref(n.id),
     })),
   ];
+}
+
+/** every page by the name nix would use for it, for "Did you mean …?" */
+export function pageNames({
+  posts,
+  notes,
+}: Pick<Sources, "posts" | "notes">): Record<string, string> {
+  const names: Record<string, string> = {
+    home: "/",
+    about: "/about/",
+    blog: "/blog/",
+    cv: "/cv/",
+    wiki: "/wiki/",
+  };
+  for (const p of posts) names[postSlug(p.id)] = postHref(p.id);
+  for (const n of notes) names[slugOf(n.id)] = noteHref(n.id);
+  return names;
 }

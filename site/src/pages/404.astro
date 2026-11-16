@@ -1,20 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getCollection } from "astro:content";
-import { published, postHref, postSlug } from "../lib/posts";
-import { noteHref, slugOf } from "../lib/notes";
+import { published } from "../lib/posts";
+import { pageNames } from "../lib/search";
 
-// every page a mistyped url could have meant, by the name nix would use
-const candidates: Record<string, string> = {
-  home: "/",
-  about: "/about/",
-  blog: "/blog/",
-  cv: "/cv/",
-  wiki: "/wiki/",
-};
-for (const p of published(await getCollection("blog")))
-  candidates[postSlug(p.id)] = postHref(p.id);
-for (const n of await getCollection("wiki")) candidates[slugOf(n.id)] = noteHref(n.id);
+// every page a mistyped url could have meant
+const candidates = pageNames({
+  posts: published(await getCollection("blog")),
+  notes: await getCollection("wiki"),
+});
 ---
 
 <Layout title="404 · fosskar" noindex>
@@ -29,7 +23,7 @@ for (const n of await getCollection("wiki")) candidates[slugOf(n.id)] = noteHref
 </Layout>
 
 <script>
-  import { suggest } from "../lib/fosskar";
+  import { didYouMean, suggest } from "../lib/fosskar";
 
   // the missing attribute is the last part of the requested path
   const candidates: Record<string, string> = JSON.parse(
@@ -40,24 +34,8 @@ for (const n of await getCollection("wiki")) candidates[slugOf(n.id)] = noteHref
   if (name) {
     document.getElementById("attr")!.textContent = name;
     const hits = suggest(name, Object.keys(candidates));
-    if (hits.length) {
-      const links = hits.map((h) => {
-        const a = document.createElement("a");
-        a.href = candidates[h]!;
-        a.textContent = h;
-        return a;
-      });
-      const hint = document.getElementById("hint")!;
-      hint.replaceChildren(
-        "Did you mean ",
-        ...(links.length === 1 ? [] : ["one of "]),
-        ...links.flatMap((a, i) => [
-          ...(i === 0 ? [] : [i === links.length - 1 ? " or " : ", "]),
-          a,
-        ]),
-        "?",
-      );
-    }
+    if (hits.length)
+      document.getElementById("hint")!.replaceChildren(...didYouMean(hits, candidates));
   }
 </script>
 

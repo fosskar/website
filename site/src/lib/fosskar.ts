@@ -3,7 +3,7 @@
 // the data itself comes from src/generated/site-data.json, written by nix.
 
 export interface Token {
-  kind: "comment" | "string" | "attr" | "punct" | "text";
+  kind: "comment" | "string" | "number" | "attr" | "punct" | "text";
   text: string;
   /** dotted attribute path of an attr name or of the value it holds */
   path?: string;
@@ -12,7 +12,8 @@ export interface Token {
 const patterns: [Token["kind"], RegExp][] = [
   ["comment", /^#.*/],
   ["string", /^"(?:\\.|[^"\\])*"/],
-  ["attr", /^[A-Za-z_][\w'-]*(?=\s*=)/],
+  ["attr", /^[A-Za-z_][\w'-]*(?:\.[A-Za-z_][\w'-]*)*(?=\s*=)/],
+  ["number", /^\d+(?=\s*;)/],
   ["punct", /^[{}[\];=]/],
   ["text", /^\s+|^[^\s"#{}[\];=]+/],
 ];
@@ -48,11 +49,49 @@ export function tokenize(src: string): Token[][] {
         }
       }
       tokens.push(
-        kind === "string" ? { kind, text, path: pathOf() } : { kind, text },
+        kind === "string" || kind === "number"
+          ? { kind, text, path: pathOf() }
+          : { kind, text },
       );
     }
     return tokens;
   });
+}
+
+/** website.settings: the values a visitor can change, typed like nixos options */
+export const settingTypes = {
+  colorScheme: { enum: ["dark", "light"] },
+  accent: { enum: ["teal", "blue", "orange", "pink"] },
+  font: { enum: ["inter", "commit mono"] },
+  fontSize: { min: 12, max: 24 },
+} as const;
+
+export type SettingName = keyof typeof settingTypes;
+export type Settings = Record<SettingName, string | number>;
+
+/** the type the way nixos describes it, e.g. `one of "dark", "light"` */
+export function describeType(name: SettingName): string {
+  const t = settingTypes[name];
+  return "enum" in t
+    ? `one of ${t.enum.map((v) => `"${v}"`).join(", ")}`
+    : `integer between ${t.min} and ${t.max} (both inclusive)`;
+}
+
+/** the nixos type error for an invalid value, undefined if it's valid */
+export function checkSetting(
+  name: SettingName,
+  value: unknown,
+): string | undefined {
+  const t = settingTypes[name];
+  const ok =
+    "enum" in t
+      ? (t.enum as readonly unknown[]).includes(value)
+      : Number.isInteger(value) &&
+        (value as number) >= t.min &&
+        (value as number) <= t.max;
+  if (ok) return undefined;
+  const shown = typeof value === "string" ? `"${value}"` : String(value);
+  return `A definition for option \`website.settings.${name}' is not of type \`${describeType(name)}'. Definition values:\n- In \`fosskar.nix': ${shown}`;
 }
 
 /** where a value should link to, if anywhere */
@@ -105,4 +144,26 @@ export function suggest(
     .sort((a, b) => a.d - b.d)
     .slice(0, max)
     .map(({ c }) => c);
+}
+
+/** "Did you mean …?" as nix words it, with each candidate as a link */
+export function didYouMean(
+  hits: string[],
+  hrefs: Record<string, string>,
+): (string | HTMLAnchorElement)[] {
+  const links = hits.map((h) => {
+    const a = document.createElement("a");
+    a.href = hrefs[h]!;
+    a.textContent = h;
+    return a;
+  });
+  return [
+    "Did you mean ",
+    ...(links.length === 1 ? [] : ["one of "]),
+    ...links.flatMap((a, i) => [
+      ...(i === 0 ? [] : [i === links.length - 1 ? " or " : ", "]),
+      a,
+    ]),
+    "?",
+  ];
 }

@@ -3,7 +3,6 @@
   name = "simon";
   role = "devops engineer / sre";
   location = "hamburg";
-  colorScheme = "dark";
 
   # kubernetes at work, nixos everywhere else
   likes = [ "nix" "self-hosting" "local llms" "fixing things properly" ];
@@ -22,5 +21,13 @@
   contact = {
     mail = "simon@nx3.eu";
     matrix = "@fosskar:fosskar.de";
+  };
+
+  # click a value to change it
+  website.settings = {
+    colorScheme = "dark";
+    accent = "teal";
+    font = "inter";
+    fontSize = 16;
   };
 }

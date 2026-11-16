@@ -35,6 +35,7 @@ const crumbs = [
       : `/<a href="/${segments.slice(0, i + 1).map(esc).join("/")}/">${esc(seg)}</a>`,
   ),
 ].join("");
+const settings = fosskar.website.settings;
 const items = searchItems({
   projects: await getCollection("projects"),
   posts: published(await getCollection("blog")),
@@ -44,7 +45,13 @@ const items = searchItems({
 ---
 
 <!doctype html>
-<html lang={lang} data-theme={fosskar.colorScheme}>
+<html
+  lang={lang}
+  data-theme={settings.colorScheme}
+  data-accent={settings.accent}
+  data-font={settings.font}
+  style={`--font-size: ${settings.fontSize}px`}
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -53,10 +60,17 @@ const items = searchItems({
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
-    <!-- colorScheme comes from fosskar.nix; a choice made on the home page wins -->
-    <script is:inline>
-      const scheme = localStorage.getItem("colorScheme");
-      if (scheme) document.documentElement.dataset.theme = scheme;
+    <!-- website.settings from fosskar.nix; values changed on the home page win -->
+    <script is:inline define:vars={{ settings }}>
+      const root = document.documentElement;
+      window.applySettings = (s) => {
+        root.dataset.theme = s.colorScheme;
+        root.dataset.accent = s.accent;
+        root.dataset.font = s.font;
+        root.style.setProperty("--font-size", `${s.fontSize}px`);
+      };
+      const saved = localStorage.getItem("settings");
+      if (saved) applySettings({ ...settings, ...JSON.parse(saved) });
     </script>
   </head>
   <body>
@@ -147,8 +161,48 @@ const items = searchItems({
     --string: #1d6b5a;
     color-scheme: light;
   }
+  /* website.settings.accent; teal is the default above */
+  :root[data-accent="blue"] {
+    --accent: #4f9ee8;
+    --accent-bright: #6cb0f0;
+    --string: #a9c8e8;
+  }
+  :root[data-accent="orange"] {
+    --accent: #e08a3c;
+    --accent-bright: #f0a050;
+    --string: #e3c09a;
+  }
+  :root[data-accent="pink"] {
+    --accent: #d66ba0;
+    --accent-bright: #e48bb6;
+    --string: #e0b3c9;
+  }
+  :root[data-theme="light"][data-accent="blue"] {
+    --accent: #1d5fa8;
+    --accent-bright: #164c87;
+    --string: #2a5d8f;
+  }
+  :root[data-theme="light"][data-accent="orange"] {
+    --accent: #a5520f;
+    --accent-bright: #86420b;
+    --string: #8a5420;
+  }
+  :root[data-theme="light"][data-accent="pink"] {
+    --accent: #a3336b;
+    --accent-bright: #852856;
+    --string: #8f3d66;
+  }
+  :root[data-font="commit mono"] {
+    font-family: var(--mono);
+  }
   html {
     scroll-padding-top: 2rem;
+  }
+  /* screen only: the cv sets its own root size for print */
+  @media screen {
+    html {
+      font-size: var(--font-size);
+    }
   }
   :focus-visible {
     outline: 2px solid var(--accent);

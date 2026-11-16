@@ -4,7 +4,14 @@ import { getCollection } from "astro:content";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { published } from "../lib/posts";
-import { linkFor, tokenize, typeOf } from "../lib/fosskar";
+import { pageNames } from "../lib/search";
+import {
+  describeType,
+  linkFor,
+  tokenize,
+  typeOf,
+  type SettingName,
+} from "../lib/fosskar";
 import { fosskar } from "../lib/site-data";
 
 // the page shows the file the site's data is evaluated from
@@ -16,52 +23,83 @@ const notes = (await getCollection("wiki")).sort(
   (a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0),
 );
 const day = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
+const pages = pageNames({ posts, notes });
+const sitePaths = new Set(Object.values(pages));
 
-// hover text per top-level attribute
+// hover text per attribute path
 const hovers: Record<string, string> = {
   name: "the person behind fosskar.",
   role: "devops engineer and sre since 2023, in a team of four.",
   location: "hamburg, germany.",
-  colorScheme: "dark or light. click the value to switch; the choice is remembered.",
   likes:
     "what i spend my free time on. local llms means llama.cpp and vllm in my homelab, with regular benchmarks.",
-  writing: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}.`,
-  me: "who i am and what i work on, my cv in english and german (page and pdf), and my code.",
+  me: "who i am and what i work on, my cv in english and german (page and pdf), and my code. double-click a path to edit it.",
+  writing: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}. double-click a path to edit it.`,
   contact: "mail or matrix, whichever you prefer.",
+  "website.settings": "how this site looks. click a value and type, or step with ↑/↓. changes stay in this browser.",
+  "website.settings.colorScheme": "the colour scheme of every page.",
+  "website.settings.accent": "the colour of links and strings.",
+  "website.settings.font": "the font of the text on the other pages.",
+  "website.settings.fontSize": "the base size in px; everything scales with it.",
 };
-const types: Record<string, string> = Object.fromEntries(
-  Object.entries(fosskar).map(([k, v]) => [k, typeOf(v)]),
-);
+const setting = (path: string) =>
+  path.startsWith("website.settings.")
+    ? (path.slice("website.settings.".length) as SettingName)
+    : undefined;
+const valueAt = (path: string) =>
+  path.split(".").reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], fosskar);
+const typeAt = (path: string) => {
+  const name = setting(path);
+  return name ? describeType(name) : typeOf(valueAt(path));
+};
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
   .map((tokens) => {
+    let editable: string | undefined;
     const code = tokens
       .map((t) => {
         const text = esc(t.text);
-        if (t.kind === "comment") return `<span class="c">${text}</span>`;
+        if (t.kind === "comment") {
+          if (t.text !== "# fosskar.nix") return `<span class="c">${text}</span>`;
+          return `<span class="c">${text}<span class="modified" hidden> [+]</span></span>`;
+        }
         if (t.kind === "attr") {
-          const h = t.path && !t.path.includes(".") ? hovers[t.path] : undefined;
+          const h = t.path ? hovers[t.path] : undefined;
           if (!h) return `<span class="k">${text}</span>`;
-          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
+          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${esc(typeAt(t.path!))}<span class="d">${esc(h)}</span></span></span>`;
+        }
+        const name = t.path && setting(t.path);
+        if (name && (t.kind === "string" || t.kind === "number")) {
+          editable = t.path;
+          const v = `<span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-label="${t.path}" data-setting="${name}" data-key="${t.path}">${esc(t.text.replace(/^"|"$/g, ""))}</span>`;
+          return t.kind === "string" ? `<span class="s">"${v}"</span>` : `<span class="s">${v}</span>`;
         }
         if (t.kind === "string") {
-          if (t.path === "colorScheme")
-            return `<button class="opt" type="button" data-opt="colorScheme">${text}</button>`;
-          const href = linkFor(t.text.slice(1, -1));
+          const value = t.text.slice(1, -1);
+          if (sitePaths.has(value)) {
+            editable = t.path;
+            return `<a class="s" href="${esc(value)}" data-editable>"<span class="v" spellcheck="false" data-key="${t.path}" data-orig="${esc(value)}">${esc(value)}</span>"</a>`;
+          }
+          const href = linkFor(value);
           if (href) return `<a class="s" href="${esc(href)}">${text}</a>`;
           return `<span class="s">${text}</span>`;
         }
+        if (t.kind === "number") return `<span class="s">${text}</span>`;
         if (t.kind === "punct") return `<span class="p">${text}</span>`;
         return text;
       })
       .join("");
-    return code;
+    if (!editable) return code + "\n";
+    // the error for a value shows under its line, indented like the line; it
+    // follows the line break, which would otherwise leave a blank line after it
+    const indent = tokens[0]?.kind === "text" ? tokens[0].text.length : 0;
+    return `${code}\n<span class="err" data-err="${editable}" style="padding-left: ${indent}ch" role="alert" hidden></span>`;
   })
-  .join("\n");
-
+  .join("")
+  .trimEnd();
 ---
 
 <Layout
@@ -70,25 +108,173 @@ const html = lines
   wide
 >
   <div class="home">
-    <pre class="nix" id="nix"><code set:html={html} /></pre>
+    <pre
+      class="nix"
+      id="nix"
+      data-defaults={JSON.stringify(fosskar.website.settings)}
+      data-pages={JSON.stringify(pages)}><code set:html={html} /></pre>
+    <button class="restore" id="restore" type="button" hidden>$ git restore fosskar.nix</button>
   </div>
 </Layout>
 
 <script>
-  const root = document.documentElement;
+  import {
+    checkSetting,
+    didYouMean,
+    settingTypes,
+    suggest,
+    type SettingName,
+    type Settings,
+  } from "../lib/fosskar";
+
+  declare global {
+    interface Window {
+      applySettings(s: Settings): void;
+    }
+  }
+
   const nix = document.getElementById("nix")!;
+  const restore = document.getElementById("restore")!;
+  const modified = nix.querySelector<HTMLElement>(".modified")!;
+  const defaults: Settings = JSON.parse(nix.dataset.defaults!);
+  const pages: Record<string, string> = JSON.parse(nix.dataset.pages!);
+  let current: Settings = {
+    ...defaults,
+    ...JSON.parse(localStorage.getItem("settings") ?? "{}"),
+  };
 
-  // colorScheme: switch the whole site and remember the choice
-  const opt = nix.querySelector<HTMLButtonElement>('[data-opt="colorScheme"]')!;
-  const show = () => (opt.textContent = `"${root.dataset.theme}"`);
-  show();
-  opt.addEventListener("click", () => {
-    const next = root.dataset.theme === "dark" ? "light" : "dark";
-    root.dataset.theme = next;
-    localStorage.setItem("colorScheme", next);
-    show();
+  function showError(key: string, message?: (string | Node)[]) {
+    const el = nix.querySelector<HTMLElement>(`[data-err="${key}"]`)!;
+    el.hidden = !message;
+    const red = Object.assign(document.createElement("span"), {
+      className: "red",
+      textContent: "error:",
+    });
+    el.replaceChildren(...(message ? [red, " ", ...message] : []));
+  }
+
+  // only values that differ from fosskar.nix are stored
+  function save() {
+    const changed = Object.fromEntries(
+      Object.entries(current).filter(([k, v]) => v !== defaults[k as SettingName]),
+    );
+    const dirty = Object.keys(changed).length > 0;
+    modified.hidden = restore.hidden = !dirty;
+    if (dirty) localStorage.setItem("settings", JSON.stringify(changed));
+    else localStorage.removeItem("settings");
+    window.applySettings(current);
+  }
+
+  function selectAll(el: HTMLElement) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+  }
+
+  // website.settings: type a value, or step through the allowed ones
+  const settings = [...nix.querySelectorAll<HTMLElement>("[data-setting]")];
+  for (const el of settings) {
+    const name = el.dataset.setting as SettingName;
+    const type = settingTypes[name];
+    el.textContent = String(current[name]);
+    const commit = () => {
+      const raw = el.textContent!.trim();
+      const value = "enum" in type || !/^-?\d+$/.test(raw) ? raw : Number(raw);
+      const error = checkSetting(name, value);
+      showError(el.dataset.key!, error ? [error] : undefined);
+      if (error) return;
+      current = { ...current, [name]: value };
+      save();
+    };
+    el.addEventListener("focus", () => selectAll(el));
+    el.addEventListener("blur", commit);
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        el.blur();
+      } else if (e.key === "Escape") {
+        el.textContent = String(current[name]);
+        showError(el.dataset.key!);
+        el.blur();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const step = e.key === "ArrowUp" ? 1 : -1;
+        const now = current[name];
+        if ("enum" in type) {
+          const i = (type.enum as readonly unknown[]).indexOf(now);
+          el.textContent = type.enum[(i + step + type.enum.length) % type.enum.length]!;
+        } else {
+          el.textContent = String(Math.min(type.max, Math.max(type.min, Number(now) + step)));
+        }
+        commit();
+        selectAll(el);
+      }
+    });
+  }
+  save();
+
+  // site paths: a click follows the link, a double-click edits it; an
+  // unknown path gets the same error as the 404 page
+  const paths = [...nix.querySelectorAll<HTMLAnchorElement>("a[data-editable]")];
+  for (const a of paths) {
+    const v = a.querySelector<HTMLElement>(".v")!;
+    let follow: ReturnType<typeof setTimeout> | undefined;
+    let before = "";
+    a.addEventListener("click", (e) => {
+      if (v.isContentEditable) return e.preventDefault();
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (e.detail === 1) follow = setTimeout(() => (location.href = a.href), 250);
+    });
+    a.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      clearTimeout(follow);
+      before = v.textContent!;
+      v.contentEditable = "plaintext-only";
+      v.focus();
+      selectAll(v);
+    });
+    v.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        v.blur();
+      } else if (e.key === "Escape") {
+        v.textContent = before;
+        v.blur();
+      }
+    });
+    v.addEventListener("blur", () => {
+      v.contentEditable = "false";
+      const value = v.textContent!.trim();
+      a.setAttribute("href", value);
+      if (Object.values(pages).includes(value)) return showError(v.dataset.key!);
+      const name = value.split("/").filter(Boolean).at(-1) ?? value;
+      const k = Object.assign(document.createElement("span"), {
+        className: "k",
+        textContent: name,
+      });
+      const hits = suggest(name, Object.keys(pages));
+      showError(v.dataset.key!, [
+        "attribute '",
+        k,
+        "' missing",
+        ...(hits.length ? ["\n\n", ...didYouMean(hits, pages)] : []),
+      ]);
+    });
+  }
+
+  restore.addEventListener("click", () => {
+    current = { ...defaults };
+    for (const el of settings) el.textContent = String(current[el.dataset.setting as SettingName]);
+    for (const a of paths) {
+      const v = a.querySelector<HTMLElement>(".v")!;
+      v.textContent = v.dataset.orig!;
+      a.setAttribute("href", v.dataset.orig!);
+    }
+    for (const el of nix.querySelectorAll<HTMLElement>("[data-err]")) showError(el.dataset.err!);
+    save();
   });
-
 </script>
 
 <style is:global>
@@ -127,8 +313,7 @@ const html = lines
   .home .k {
     color: var(--strong);
   }
-  .home .s,
-  .home .opt {
+  .home .s {
     color: var(--string);
   }
   .home .p {
@@ -142,16 +327,41 @@ const html = lines
     color: var(--accent-bright);
     border-bottom-style: solid;
   }
-  .home .opt {
+  /* values a visitor can type into */
+  .home .v[contenteditable="plaintext-only"] {
+    border-bottom: 1px dashed var(--string);
+    outline: none;
+    cursor: text;
+  }
+  .home .v:focus {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  /* wraps inside the file's width instead of widening the centered block */
+  .home .err {
+    display: block;
+    contain: inline-size;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+  .home .red {
+    color: #e65b53;
+  }
+  .home .err a {
+    color: var(--accent);
+  }
+  .home .modified {
+    color: var(--accent);
+  }
+  .home .restore {
     font: inherit;
+    color: var(--dim);
     background: none;
     border: 0;
-    border-bottom: 1px dashed var(--string);
     padding: 0;
     cursor: pointer;
   }
-  .home .opt:hover {
-    color: var(--accent-bright);
+  .home .restore:hover {
+    color: var(--accent);
   }
 
   /* hover info, like a language server in an editor */

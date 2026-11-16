@@ -12,7 +12,7 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
 - `projects/` → listed on the about pages and on `/cv/` (ordered by `order`)
 
-`fosskar.nix` at the repo root is the site's own data: name, role, links and the `colorScheme` default. `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json`. The build copies that file to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt.
+`fosskar.nix` at the repo root is the site's own data: name, role, links and the `website.settings` defaults. The types of `website.settings` live in `settingTypes` in `site/src/lib/fosskar.ts`. `site-data.ts` fails the build on a value that doesn't match its type. `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json`. The build copies that file to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt.
 
 The build has three steps in `nix/package.nix`:
 
@@ -73,7 +73,7 @@ Site code:
 - TypeScript strict (`astro/tsconfigs/strict`). All config is `.ts` including `astro.config.ts`
 - domain logic belongs in `site/src/lib/` with colocated vitest tests (`notes.test.ts`, `posts.test.ts`). Pages don't inline rules: they call `published()`, `noteHref()`, etc.
 - shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings). Don't re-inline card/header markup in pages
-- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `data-theme` defaults to `colorScheme` from `fosskar.nix`, and a choice made on the home page is kept in `localStorage`. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the home page expression, the path line, the footer store path) avoids template whitespace and needs global, prefixed selectors, because scoped styles do not reach it. Print always uses the light palette. Surfaces are flat: no gradients, blur or scroll animations. Fonts are Inter and Commit Mono from `@fontsource`, imported in `Layout.astro` instead of loaded from other hosts. The site doesn't use a framework or any integrations beyond sitemap + RSS
+- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `website.settings` in `fosskar.nix` sets `data-theme`, `data-accent`, `data-font` and `--font-size` on `<html>`. Values a visitor changes on the home page are kept in `localStorage` under `settings`, and the inline script in `Layout.astro` applies them before the first paint. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the home page expression, the path line, the footer store path) avoids template whitespace and needs global, prefixed selectors, because scoped styles do not reach it. Print always uses the light palette. Surfaces are flat: no gradients, blur or scroll animations. Fonts are Inter and Commit Mono from `@fontsource`, imported in `Layout.astro` instead of loaded from other hosts. The site doesn't use a framework or any integrations beyond sitemap + RSS
 - frontmatter schemas are zod in `content.config.ts`. Extend the schema before using a new field
 
 ## Important Files

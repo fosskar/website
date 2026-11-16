@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { linkFor, suggest, tokenize, typeOf } from "./fosskar";
+import {
+  checkSetting,
+  linkFor,
+  settingTypes,
+  suggest,
+  tokenize,
+  typeOf,
+} from "./fosskar";
 
 const src = `# fosskar.nix
 {
@@ -9,6 +16,9 @@ const src = `# fosskar.nix
   ];
   contact = {
     mail = "simon@nx3.eu";
+  };
+  website.settings = {
+    fontSize = 16;
   };
 }`;
 
@@ -30,6 +40,8 @@ describe("tokenize", () => {
       "likes",
       "contact",
       "mail",
+      "website.settings",
+      "fontSize",
     ]);
   });
 
@@ -42,6 +54,17 @@ describe("tokenize", () => {
     expect(str('"simon@nx3.eu"')?.path).toBe("contact.mail");
     expect(str('"nix"')?.path).toBe("likes");
     expect(str('"en"')?.path).toBe("lang");
+  });
+
+  it("follows dotted attribute names into the set they open", () => {
+    expect(
+      flat.find((t) => t.kind === "attr" && t.text === "fontSize")?.path,
+    ).toBe("website.settings.fontSize");
+    expect(flat.find((t) => t.kind === "number")).toEqual({
+      kind: "number",
+      text: "16",
+      path: "website.settings.fontSize",
+    });
   });
 });
 
@@ -78,5 +101,31 @@ describe("suggest", () => {
 
   it("drops candidates that are too far away", () => {
     expect(suggest("zzzzzzzz", ["wiki", "blog"])).toEqual([]);
+  });
+});
+
+describe("checkSetting", () => {
+  it("accepts the values the type allows", () => {
+    expect(checkSetting("colorScheme", "light")).toBeUndefined();
+    expect(checkSetting("fontSize", 18)).toBeUndefined();
+  });
+
+  it("rejects other values with the error nixos would print", () => {
+    expect(checkSetting("fontSize", 99)).toBe(
+      "A definition for option `website.settings.fontSize' is not of type `integer between 12 and 24 (both inclusive)'. Definition values:\n- In `fosskar.nix': 99",
+    );
+    expect(checkSetting("accent", "red")).toContain(
+      'is not of type `one of "teal", "blue", "orange", "pink"\'',
+    );
+    expect(checkSetting("fontSize", 16.5)).toBeDefined();
+  });
+
+  it("has a type for every setting", () => {
+    expect(Object.keys(settingTypes)).toEqual([
+      "colorScheme",
+      "accent",
+      "font",
+      "fontSize",
+    ]);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { searchItems } from "./search";
+import { pageNames, searchItems } from "./search";
 
 const project = (id: string, title: string, order: number, repo?: string) => ({
   id,
@@ -33,5 +33,24 @@ describe("searchItems", () => {
   it("routes posts under /blog/ and notes flat under /wiki/", () => {
     expect(items.find((i) => i.group === "blog")?.href).toBe("/blog/hello/");
     expect(items.find((i) => i.group === "wiki")?.href).toBe("/wiki/tpm/");
+  });
+});
+
+describe("pageNames", () => {
+  it("names every page by its slug", () => {
+    expect(
+      pageNames({
+        posts: [post("hello.md", "hello world")],
+        notes: [note("nixos/tpm.md", "tpm unlock")],
+      }),
+    ).toEqual({
+      home: "/",
+      about: "/about/",
+      blog: "/blog/",
+      cv: "/cv/",
+      wiki: "/wiki/",
+      hello: "/blog/hello/",
+      tpm: "/wiki/tpm/",
+    });
   });
 });
