@@ -6,6 +6,6 @@ tags: [kubernetes, harbor, containers]
 order: 4
 ---
 
-Scans the cluster for images that are actually running and labels them in the
+Scans the cluster for images that are running and labels them in the
 Harbor registry, so retention policies can distinguish in-use images from
 garbage-collectable ones.

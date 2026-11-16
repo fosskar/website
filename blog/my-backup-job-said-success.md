@@ -26,7 +26,7 @@ d 0 tank/apps/immich/.zfs/snapshot/borg-backup
 d 0 tank/backup/.zfs/snapshot/borg-backup
 ```
 
-No error, no warning. Everything outside ZFS was fine.
+The log showed neither an error nor a warning. Everything outside ZFS was fine.
 
 ## first guess: the split broke it
 
@@ -66,11 +66,11 @@ it hasn't been touched for `zfs_expire_snapshot` seconds, 300 by default, and
 the unmount propagates straight into borg's namespace. borg had finished immich
 five minutes earlier, so here it didn't matter. But at night borg first spends
 several minutes on other paths, and with four datasets instead of one, the ones
-it gets to last sit idle long enough to expire. When borg finally reaches them,
+it gets to last go untouched long enough to expire. When borg finally reaches them,
 it's inside a namespace that can't mount them again. Empty directory, archived,
 success.
 
-My 400-second test had simply ended before ZFS got around to it.
+My 400-second test had ended before ZFS got around to it.
 
 ## the fix that didn't fix it
 
@@ -103,10 +103,11 @@ nsenter --mount=/proc/1/ns/mnt -- \
   mount -t zfs -o ro "$dataset@borg-backup" "/run/snapshot-backup/$dataset"
 ```
 
-From there it propagates into borg's namespace and stays until the post-hook
-unmounts it. borg gets the path as `/run/snapshot-backup/./tank/apps/immich`;
-borg 1.4 strips everything before `/./`, so the archive still stores
-`tank/apps/immich/...` and my excludes keep working.
+From there it propagates into borg's namespace and remains mounted until the
+post-hook unmounts it. borg gets the path as
+`/run/snapshot-backup/./tank/apps/immich`. borg 1.4 strips everything before
+`/./`. The archive still stores `tank/apps/immich/...`, and my excludes keep
+working.
 
 The next run took 34 minutes, archived 440 GB, and had 108,524 entries for
 immich instead of one. The full write-up, with the commands to reproduce and
@@ -115,7 +116,7 @@ verify, is in the wiki:
 
 ## what I took from it
 
-The bug wasn't really in ZFS or systemd. Both behave as documented. It was in
+The bug wasn't in ZFS or systemd. Both behave as documented. It was in
 how I knew the backup worked: the job was green, so I assumed the data was
 there. For months that was true by luck of timing.
 
@@ -123,5 +124,5 @@ So now the check is the archive, not the exit code: after a run, count what's
 in it per dataset. A folder with one entry where yesterday had a hundred
 thousand is a failed backup, whatever the job says. And test where the thing
 actually runs. Every test I ran from an SSH shell passed. The ones run as a
-systemd unit, in the backup's own conditions, were the ones that told the
-truth.
+systemd unit, in the backup's own conditions, were the ones that reproduced
+the failure.
