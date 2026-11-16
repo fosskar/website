@@ -12,6 +12,8 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
 - `projects/` → cards in the home page's selected work and on `/cv/` (ordered by `order`)
 
+`fosskar.nix` at the repo root is the site's own data (name, role, links, the `lang`/`colorScheme` defaults). `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json` together with the package names of the flake; the build copies it to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, so it is excluded from nixfmt. The build passes its own output path as `SITE_STORE_PATH` for the footer. Each top-level section (`about`, `blog`, `cv`, `wiki`) is also a flake package linking into the built site.
+
 Domain logic is centralized in `site/src/lib/`:
 
 - `notes.ts`: note identity and wikilinks. Contains `slugOf`/`noteHref` (flat routing), `noteSlugIndex()` (basename → slug, Obsidian shortest-path, unique vault-wide), `resolveWikiLink()`, `scanWikiLinks()` (skips code fences), `validateWikiLinks()`, `assertUniqueSlugs()` (collision throws naming both IDs), and the `SECTIONS` record (section descriptions + display order, so vault folders **don't** need a per-directory `index.md`)
@@ -60,7 +62,7 @@ Site code:
 - TypeScript strict (`astro/tsconfigs/strict`). All config is `.ts` including `astro.config.ts`
 - domain logic belongs in `site/src/lib/` with colocated vitest tests (`notes.test.ts`, `posts.test.ts`). Pages don't inline rules: they call `published()`, `noteHref()`, etc.
 - shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings). Don't re-inline card/header markup in pages
-- styling is hand-written CSS: global theme (CSS variables, dark default, light via `prefers-color-scheme`) in `Layout.astro` `<style is:global>`, page/component rules in scoped `<style>` blocks. The site doesn't use a framework or any integrations beyond sitemap + RSS
+- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `data-theme` defaults to `colorScheme` from `fosskar.nix`, and a choice made on the home page is kept in `localStorage`. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the home page expression, the footer tree) needs global, prefixed selectors, because scoped styles do not reach it. Surfaces are flat: no gradients, blur or scroll animations. The site doesn't use a framework or any integrations beyond sitemap + RSS
 - frontmatter schemas are zod in `content.config.ts`. Extend the schema before using a new field
 
 ## Important Files

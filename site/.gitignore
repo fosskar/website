@@ -25,3 +25,4 @@ pnpm-debug.log*
 
 # astro/vite caches (see astro.config.mjs)
 .cache/
+src/generated/
