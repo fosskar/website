@@ -9,9 +9,9 @@ by default, `age-plugin-yubikey` generates a different key on each device. that 
 
 if you generate the p-256 key once and import that same key into multiple yubikeys, all of them end up with the same age identity. one recipient, multiple physical keys.
 
-the tradeoff: the private key exists as a file during setup, so it can be backed up, and can also leak, until it is shredded.
+the tradeoff: the private key exists as a file during setup. until it is shredded, that file can be backed up, and it can also leak.
 
-## why the certificate matters
+## the piv certificate
 
 the plugin stores both a private key and a self-signed certificate in a retired piv slot. the cert is metadata, not the crypto key, but the plugin uses it to discover the slot and read pin and touch policy.
 
@@ -29,11 +29,11 @@ the plugin does not check cert expiry.
 | policy | pin  | touch |
 | ------ | ---- | ----- |
 | never  | `01` | `01`  |
-| once   | `02` | —     |
+| once   | `02` | n/a   |
 | always | `03` | `02`  |
-| cached | —    | `03`  |
+| cached | n/a  | `03`  |
 
-because the policy lives in the cert, every yubikey sharing this identity also shares the same policy.
+because the policy is stored in the cert, every yubikey sharing this identity also shares the same policy.
 
 ## generate the shared key
 
@@ -83,7 +83,7 @@ you want the policy oid present, and no unsupported critical extensions.
 
 ## import to a yubikey
 
-the key import policy has to match the policy bytes baked into the certificate. if they differ, decrypt can fail even though the recipient looks correct.
+the key import policy has to match the policy bytes encoded in the certificate. if they differ, decrypt can fail even though the recipient looks correct.
 
 ```bash
 ykman piv keys import 82 --pin-policy NEVER --touch-policy NEVER age-key.pem

@@ -5,7 +5,7 @@ date: 2025-08-20
 type: guide
 ---
 
-this converts a single-disk proxmox install into a mirrored one. the extra boot steps matter because a mirrored zpool alone is not enough if the second disk is not also prepared as a boot target. in this setup `/dev/nvme1n1` is the existing disk and `/dev/nvme0n1` the new one — swap them to match yours.
+this converts a single-disk proxmox install into a mirrored one. the extra boot steps matter because a mirrored zpool alone is not enough if the second disk is not also prepared as a boot target. in this setup `/dev/nvme1n1` is the existing disk and `/dev/nvme0n1` the new one. swap them to match yours.
 
 ## 1. copy the partition table
 
@@ -44,7 +44,7 @@ proxmox-boot-tool init /dev/nvme0n1p2
 zpool attach rpool /dev/disk/by-id/<existing-disk-id>-part3 /dev/disk/by-id/<new-disk-id>-part3
 ```
 
-use the stable `/dev/disk/by-id/` names (`ls -l /dev/disk/by-id/ | grep nvme`), not the `nvme0n1` device nodes — those can swap between boots.
+use the stable `/dev/disk/by-id/` names (`ls -l /dev/disk/by-id/ | grep nvme`), not the `nvme0n1` device nodes, which can swap between boots.
 
 ## verify
 

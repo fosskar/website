@@ -8,4 +8,4 @@ enableToc: false
 
 this is a bliki: half blog, half wiki.
 
-most pages start from a real problem: a machine that needed fixing, a setup that was annoying enough to document, or a pile of commands that only make sense once the reason behind them is clear. the point is not to dump configs. it is to keep the useful part: what worked, why it worked, and what tradeoff was being made.
+most pages start from a specific problem, usually a machine that needed fixing or a setup annoying enough to document. others collect commands that only make sense once the reason behind them is clear. each note records what worked and why, plus the tradeoff behind it.

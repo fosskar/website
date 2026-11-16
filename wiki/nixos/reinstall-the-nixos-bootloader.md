@@ -46,4 +46,4 @@ nixos-enter
 NIXOS_INSTALL_BOOTLOADER=1 /nix/var/nix/profiles/system/bin/switch-to-configuration boot
 ```
 
-that is the same switch step `nixos-install` would use, just rerun against the already-installed system. if it succeeded, reboot from the installed disk — the system should come up normally through its own boot entries.
+that is the same switch step `nixos-install` would use, just rerun against the already-installed system. if it succeeded, reboot from the installed disk. the system should come up normally through its own boot entries.

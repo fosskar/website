@@ -7,7 +7,7 @@ type: troubleshooting
 
 three ways a talos cluster with cilium failed to come up cleanly on this setup. each section is symptom → cause → fix.
 
-## cilium 1.18.x bootstrap deadlock
+## bootstrap deadlock with cilium 1.18.x
 
 ### symptom
 

@@ -5,14 +5,14 @@ date: 2025-03-29
 type: note
 ---
 
-if your flake exports templates, `self` is the part that points back at the current flake. that is why the template import uses `self` instead of a hard-coded path.
+if your flake exports templates, `self` is the part that points back at the current flake. the template import below uses `self` instead of a hard-coded path.
 
 ```nix
 # flake.nix (outputs)
 templates = import "${self}/templates" { inherit self; };
 ```
 
-`self` only exists inside `flake.nix`; on the command line, refer to the flake by its flake reference:
+`self` only exists inside `flake.nix`. on the command line, refer to the flake by its flake reference:
 
 ```bash
 nix flake init -t <flake-ref>#<name-of-template>

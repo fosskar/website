@@ -5,12 +5,12 @@ date: 2026-04-06
 type: guide
 ---
 
-this swaps out gnome-keyring for kwallet and removes the extra password prompt at login: store the wallet password as a tpm-sealed credential, decrypt it in the user session, derive the hash kwallet expects, then ask `kwalletd6` to unlock the wallet over dbus.
+this swaps out gnome-keyring for kwallet and removes the extra password prompt at login. the wallet password is stored as a tpm-sealed credential. a helper decrypts it in the user session and derives the hash kwallet expects, then asks `kwalletd6` to unlock the wallet over dbus.
 
 ## why this route
 
-- kwallet gives you a secret service implementation without depending on a kde desktop session
-- the password stays sealed to the machine tpm instead of being stored in plain text
+- kwallet gives you a secret service provider without depending on a kde desktop session
+- the password is sealed to the machine tpm instead of being stored in plain text
 - no pam glue is needed for the unlock itself
 
 ## flow
@@ -53,7 +53,7 @@ environment.systemPackages = [
 
 ### unlock helper
 
-kwalletd6 does not take the plain password; it takes the pbkdf2 hash derived from the password and the wallet's salt file. the helper decrypts the credential, derives that hash with kwallet's parameters, and passes it to `pamOpen`.
+kwalletd6 does not take the plain password. it takes the pbkdf2 hash of the password, salted with the contents of `kdewallet.salt`. the helper decrypts the credential and derives that hash with kwallet's parameters before passing it to `pamOpen`.
 
 ```python
 # kwallet-tpm-unlock helper, inlined in modules/nixos/common/workstation/keyring.nix (this setup)

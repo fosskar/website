@@ -5,7 +5,7 @@ date: 2025-08-20
 type: guide
 ---
 
-this setup uses one shared load balancer ip for all ingress traffic. that keeps local dns simple: every `*.kube-prd.lan` name points at one address, and ingress routes by host header after the request lands. the ip addresses below are examples.
+this setup uses one shared load balancer ip for all ingress traffic. local dns then needs only one target: every `*.kube-prd.lan` name points at one address, and ingress routes each request by host header. the ip addresses below are examples.
 
 ## shared ippool
 
@@ -20,7 +20,7 @@ ingressController:
   loadbalancerMode: shared
 ```
 
-`/32` means cilium gets exactly one ip to hand out. `shared` mode is the reason multiple ingresses can sit behind that single address.
+`/32` means cilium gets exactly one ip to hand out. `shared` mode is the reason multiple ingresses can share that one address.
 
 ## l2 announcement policy
 
@@ -91,7 +91,7 @@ check the router dns entry and make sure it points at the same ip from the ippoo
 kubectl get svc cilium-ingress
 ```
 
-expected: `EXTERNAL-IP` shows `172.16.20.120` (the single ip from the pool). then any `*.kube-prd.lan` name should resolve to that ip and the corresponding page should load.
+expected: `EXTERNAL-IP` shows `172.16.20.120` (the only ip in the pool). then any `*.kube-prd.lan` name should resolve to that ip and the corresponding page should load.
 
 ## related
 

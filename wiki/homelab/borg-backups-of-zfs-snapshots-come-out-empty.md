@@ -5,15 +5,15 @@ date: 2026-10-11
 type: troubleshooting
 ---
 
-backing up a zfs snapshot instead of the live dataset gives borg a consistent point-in-time view while services keep writing. a remote that only speaks files, such as a Hetzner Storage Box, cannot receive `zfs send`, so the usual pattern is: snapshot in a pre-backup hook, let borg read the snapshot, destroy it in a post-backup hook. on NixOS the borg job is a hardened systemd unit, and two details of that unit decide whether borg sees the snapshot at all.
+backing up a zfs snapshot instead of the live dataset gives borg a consistent point-in-time view while services keep writing. a remote that only speaks files, such as a Hetzner Storage Box, cannot receive `zfs send`, so the usual pattern is to snapshot in a pre-backup hook and destroy the snapshot in a post-backup hook, with borg reading it in between. on NixOS the borg job is a hardened systemd unit, and whether borg sees the snapshot at all depends on two details of that unit.
 
-(this setup) NixOS with OpenZFS 2.4.4, systemd 261, borg 1.4.5; borg jobs from `services.borgbackup.jobs` via clan-core's `borgbackup` service, with `ProtectSystem=strict` and `PrivateTmp=true`; snapshots made by the `snapshot-backup` hooks in nixfiles.
+(this setup) NixOS with OpenZFS 2.4.4, systemd 261, borg 1.4.5. borg jobs come from `services.borgbackup.jobs` via clan-core's `borgbackup` service, with `ProtectSystem=strict` and `PrivateTmp=true`. snapshots are made by the `snapshot-backup` hooks in nixfiles.
 
 ## symptom
 
 - the job finishes with `success`, no errors or warnings
 - the archive is far smaller than usual (79 GB instead of 434 GB)
-- every zfs folder is in the archive as a single empty directory:
+- every zfs folder is in the archive as one empty directory:
 
 ```console
 $ borg list --format '{type} {size} {path}{NL}' ::<archive> | grep zfs/snapshot
@@ -31,9 +31,9 @@ there are two separate problems, and both look the same from borg's side.
 
 `<dataset>/.zfs/snapshot/<name>` is an automount. the first access makes zfs mount the snapshot, and zfs runs that mount in the host (initial) mount namespace. a mount there propagates into the borg unit's namespace, so a pre-hook that runs `ls` on the path makes the snapshot visible to borg.
 
-but zfs unmounts a snapshot that was not accessed for `zfs_expire_snapshot` seconds (default 300), and that unmount propagates into the borg namespace as well. a process inside the borg unit's own mount namespace cannot trigger the automount again ([openzfs/zfs#3512](https://github.com/openzfs/zfs/issues/3512)). the directory then reads as empty, and borg archives it as such without complaint.
+but zfs unmounts a snapshot that was not accessed for `zfs_expire_snapshot` seconds (default 300), and that unmount propagates into the borg namespace as well. a process inside the borg unit's own mount namespace cannot trigger the automount again ([openzfs/zfs#3512](https://github.com/openzfs/zfs/issues/3512)). the directory then reads as empty, and borg archives an empty directory without complaint.
 
-with one big dataset borg reads it continuously, so it never idles long enough. with several datasets, the ones borg reaches late sit untouched while it works through earlier paths, expire, and come out empty. watching it live shows the unmount hit the host and the borg namespace in the same millisecond:
+with one big dataset borg reads it continuously, so it never idles long enough. with several datasets, borg does not access the later ones while it works through earlier paths. they pass the expiry time and come out empty. watching it live shows the unmount hit the host and the borg namespace in the same millisecond:
 
 ```console
 $ findmnt --poll -N <borg-pid> -o ACTION,SOURCE,TARGET
@@ -42,7 +42,7 @@ umount  tank/apps/immich@borg-backup  /tank/apps/immich/.zfs/snapshot/borg-backu
 
 ### a mount from the pre-hook does not reach borg
 
-the obvious fix, an explicit `mount -t zfs -o ro <dataset>@<snapshot> <dir>` in the pre-hook, still gives empty directories. NixOS runs the backup hooks as `ExecStartPre=+` and `borg create` as `ExecStart`. on this setup a mount made by the `ExecStartPre=+` command is not visible to the `ExecStart` process, and never appears on the host either; it is gone when the unit stops. a test from an ssh shell passes, because that shell is in the host namespace. reproduce it in a unit instead:
+the obvious fix, an explicit `mount -t zfs -o ro <dataset>@<snapshot> <dir>` in the pre-hook, still gives empty directories. NixOS runs the backup hooks as `ExecStartPre=+` and `borg create` as `ExecStart`. on this setup a mount made by the `ExecStartPre=+` command is not visible to the `ExecStart` process, and never appears on the host either. it is gone when the unit stops. a test from an ssh shell passes, because that shell is in the host namespace. reproduce it in a unit instead:
 
 ```console
 $ systemd-run --wait --pipe -p ProtectSystem=strict -p PrivateTmp=true \
@@ -69,7 +69,7 @@ give borg the mount with a `/./` in the path:
 /run/snapshot-backup/./tank/apps/immich
 ```
 
-borg 1.4 strips everything left of `/./` from archived paths, so the archive stores `tank/apps/immich/...`, excludes match the live path (`sh:**/tank/apps/immich/encoded-video`), and the fixed path keeps borg's files cache valid between runs.
+borg 1.4 strips everything left of `/./` from archived paths. the archive then stores `tank/apps/immich/...` and excludes match the live path (`sh:**/tank/apps/immich/encoded-video`). because the path is the same on every run, borg can reuse its files cache between runs.
 
 ```bash
 # post-backup hook; runs as ExecStopPost=+, so also after a failed job
@@ -79,7 +79,7 @@ zfs destroy "<dataset>@borg-backup"
 
 the pre-hook should also unmount and destroy a leftover from an interrupted run before it creates a new snapshot.
 
-one more rule: a parent dataset's snapshot shows its child datasets' mount points as empty directories. back up every child as its own folder, or refuse a folder whose dataset has children that are not folders themselves.
+one more rule: in the snapshot of a parent dataset, the mount points of its child datasets are empty directories. back up every child as its own folder, or refuse a folder whose dataset has children that are not folders themselves.
 
 borgmatic's zfs hook works the same way (snapshot, temporary mount in its runtime directory, original paths in the archive). it does the mount and runs borg in one process, so it never hits the namespace split.
 
