@@ -65,7 +65,7 @@ const html = lines
         if (t.kind === "comment") {
           if (t.text !== "# fosskar.nix") return `<span class="c">${text}</span>`;
           // the revert button sits in this line, so showing it moves nothing
-          return `<span class="c">${text}<span class="modified" hidden> [+] <button class="restore" id="restore" type="button" title="revert to fosskar.nix" aria-label="revert to fosskar.nix"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6.5A5 5 0 1 1 3 9.5" /><path d="M3.5 2.5v4h4" /></svg></button></span></span>`;
+          return `<span class="c">${text}<span class="modified" hidden> (modified) <button class="restore" id="restore" type="button" title="revert to fosskar.nix" aria-label="revert to fosskar.nix"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6.5A5 5 0 1 1 3 9.5" /><path d="M3.5 2.5v4h4" /></svg></button></span></span>`;
         }
         if (t.kind === "attr") {
           const h = t.path ? hovers[t.path] : undefined;
@@ -379,24 +379,27 @@ const html = lines
   }
   .home .restore {
     display: inline-flex;
-    vertical-align: -0.15em;
-    padding: 0;
+    vertical-align: -0.35em;
+    margin: -0.3em 0;
+    padding: 0.3em;
+    border-radius: 4px;
     background: none;
     border: 0;
     color: var(--dim);
     cursor: pointer;
   }
   .home .restore svg {
-    width: 1em;
-    height: 1em;
+    width: 1.4em;
+    height: 1.4em;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.5;
+    stroke-width: 1.75;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
   .home .restore:hover {
     color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   /* hover info, like a language server in an editor */
