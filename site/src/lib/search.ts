@@ -37,6 +37,12 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
     { group: "contact", title: "cv", hint: "printable", href: "/cv/" },
     {
       group: "contact",
+      title: "lebenslauf",
+      hint: "cv auf deutsch",
+      href: "/cv/de/",
+    },
+    {
+      group: "contact",
       title: "github",
       hint: "fosskar",
       href: "https://github.com/fosskar",

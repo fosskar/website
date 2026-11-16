@@ -13,6 +13,7 @@ interface Props {
   wide?: boolean;
   /** the page has its own hero search; the header button docks on scroll */
   heroSearch?: boolean;
+  noindex?: boolean;
 }
 const {
   title,
@@ -20,6 +21,7 @@ const {
   lang = "en",
   wide = false,
   heroSearch = false,
+  noindex = false,
 } = Astro.props;
 const nav = [
   { href: "/#focus", label: "what i do" },
@@ -54,6 +56,7 @@ const items = searchItems({
       media="(prefers-color-scheme: light)"
     />
     {description && <meta name="description" content={description} />}
+    {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
   </head>
   <body>
@@ -794,7 +797,13 @@ const items = searchItems({
       display: none !important;
     }
     body {
+      display: block;
       background: none;
+    }
+    main,
+    main.wide {
+      padding: 0;
+      max-width: none;
     }
   }
 </style>

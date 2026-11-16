@@ -1,0 +1,569 @@
+---
+// the cv as a light paper sheet in both colour schemes; prints as the pdf.
+// the full name is letter outlines (src/assets/cv-name.svg), not text, so
+// scrapers and search engines cannot read it; it is blurred on screen and
+// sharp in print.
+import { getCollection } from "astro:content";
+import nameSvg from "../assets/cv-name.svg?raw";
+
+interface Props {
+  lang: "en" | "de";
+}
+const { lang } = Astro.props;
+
+interface Entry {
+  when: string;
+  title: string;
+  where?: string;
+  text?: string;
+}
+
+const t = {
+  en: {
+    role: "devops engineer & sre · nix, kubernetes, gitops",
+    place: "hamburg, germany",
+    sections: {
+      profile: "profile",
+      experience: "experience",
+      education: "education",
+      certificates: "certificates",
+      projects: "open source",
+      skills: "skills",
+      volunteering: "volunteering",
+    },
+    profile:
+      "devops engineer with a love for nix/nixos, self-hosting and local llm inference. at work i run on-prem kubernetes with talos, argocd and gitlab ci; everything else i declare in nix. before switching to it in 2022, i worked in machining, metrology and testing in the automotive and automation industry.",
+    experience: [
+      {
+        when: "2023 — now",
+        title: "devops engineer / sre",
+        where: "hamburg · hybrid",
+        text: "team of four, half devops, half sre; around 20 kubernetes clusters. on-prem kubernetes with talos, gitops with argocd, ci/cd with gitlab ci, helm, ansible, vault. trainee through a staffing agency until 2024.",
+      },
+      {
+        when: "2022 — 2023",
+        title: "devops engineer training (bootcamp)",
+        where: "hamburg",
+        text: "linux, bash, docker, kubernetes, ci/cd with jenkins and gitlab, elastic stack, scrum.",
+      },
+      {
+        when: "2018 — 2019",
+        title: "test technician (metrology and testing)",
+        where: "Festo · esslingen",
+      },
+      {
+        when: "2017",
+        title: "internship, news desk",
+        where: "Hitradio antenne 1 · stuttgart",
+      },
+      {
+        when: "2013 — 2014",
+        title: "industrialisation china and eu",
+        where: "thyssenkrupp Presta · esslingen",
+      },
+      {
+        when: "2012 — 2013",
+        title: "measurement and test mechanic",
+        where: "thyssenkrupp Presta · esslingen",
+      },
+      {
+        when: "2011",
+        title: "machinist",
+        where: "Ewo Fluid Power · bissingen an der teck",
+      },
+    ] as Entry[],
+    education: [
+      {
+        when: "2014 — 2017",
+        title: "general university entrance qualification (abitur)",
+        where: "Kolping Bildungscampus · stuttgart",
+      },
+      {
+        when: "2007 — 2011",
+        title: "apprenticeship as machinist (zerspanungsmechaniker)",
+        where: "Ewo Fluid Power · bissingen an der teck",
+      },
+    ] as Entry[],
+    certificates: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "devops engineer diploma", where: "bootcamp" },
+    ] as Entry[],
+    projects: {
+      nixfiles: "my machines and home network, declared with nixos and clan-core",
+      ssync: "peer-to-peer sync of coding-agent sessions across machines",
+      "pi-pack": "skills, extensions, prompts and themes for the pi coding agent",
+      fencr: "sealed firecracker microvm sandboxes for ai agents on nixos",
+      "harbor-labeler": "labels running container images in harbor for retention",
+      gitops: "flux-managed gitops repository for a talos playground cluster",
+    } as Record<string, string>,
+    skills: [
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager"],
+      ["platform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
+      ["operations", "zfs, proxmox, borg, netbird, grafana, victoriametrics"],
+      ["local ai", "llama.cpp, vllm, local llms and embedding models"],
+      ["code", "nix, bash, rust, go"],
+      ["languages", "german (native), english (fluent)"],
+    ],
+    volunteering: [
+      {
+        when: "2011",
+        title: "development aid volunteer",
+        where: "Himalayan Project e.V. · nepal",
+      },
+    ] as Entry[],
+    print: "print / save as pdf",
+    note: "the name is readable in the printed version",
+  },
+  de: {
+    role: "devops engineer & sre · nix, kubernetes, gitops",
+    place: "hamburg",
+    sections: {
+      profile: "profil",
+      experience: "berufserfahrung",
+      education: "ausbildung",
+      certificates: "zertifikate",
+      projects: "open source",
+      skills: "kenntnisse",
+      volunteering: "ehrenamt",
+    },
+    profile:
+      "devops engineer mit einer vorliebe für nix/nixos, self-hosting und lokale llm-inferenz. im job betreibe ich on-prem kubernetes mit talos, argocd und gitlab ci; alles andere beschreibe ich deklarativ in nix. vor dem wechsel 2022 habe ich in der zerspanung, messtechnik und im testing in der automobil- und automatisierungsindustrie gearbeitet.",
+    experience: [
+      {
+        when: "2023 — heute",
+        title: "devops engineer / sre",
+        where: "hamburg · hybrid",
+        text: "team aus vier leuten, je zur hälfte devops und sre; rund 20 kubernetes-cluster. on-prem kubernetes mit talos, gitops mit argocd, ci/cd mit gitlab ci, helm, ansible, vault. bis 2024 als trainee über einen personaldienstleister.",
+      },
+      {
+        when: "2022 — 2023",
+        title: "weiterbildung zum devops engineer (bootcamp)",
+        where: "hamburg",
+        text: "linux, bash, docker, kubernetes, ci/cd mit jenkins und gitlab, elastic stack, scrum.",
+      },
+      {
+        when: "2018 — 2019",
+        title: "messtechniker / testing",
+        where: "Festo · esslingen",
+      },
+      {
+        when: "2017",
+        title: "praktikum nachrichtenredaktion",
+        where: "Hitradio antenne 1 · stuttgart",
+      },
+      {
+        when: "2013 — 2014",
+        title: "industrialisierung china und eu",
+        where: "thyssenkrupp Presta · esslingen",
+      },
+      {
+        when: "2012 — 2013",
+        title: "mess- und versuchsmechaniker",
+        where: "thyssenkrupp Presta · esslingen",
+      },
+      {
+        when: "2011",
+        title: "zerspanungsmechaniker",
+        where: "Ewo Fluid Power · bissingen an der teck",
+      },
+    ] as Entry[],
+    education: [
+      {
+        when: "2014 — 2017",
+        title: "allgemeine hochschulreife",
+        where: "Kolping Bildungscampus · stuttgart",
+      },
+      {
+        when: "2007 — 2011",
+        title: "ausbildung zum zerspanungsmechaniker",
+        where: "Ewo Fluid Power · bissingen an der teck",
+      },
+    ] as Entry[],
+    certificates: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "devops-engineer-diplom", where: "bootcamp" },
+    ] as Entry[],
+    projects: {
+      nixfiles: "meine rechner und mein heimnetz, deklarativ mit nixos und clan-core",
+      ssync: "peer-to-peer-sync von coding-agent-sessions zwischen rechnern",
+      "pi-pack": "skills, extensions, prompts und themes für den pi coding agent",
+      fencr: "abgeschottete firecracker-microvm-sandboxes für ki-agenten auf nixos",
+      "harbor-labeler": "markiert laufende container-images in harbor für die retention",
+      gitops: "flux-basiertes gitops-repository für einen talos-testcluster",
+    } as Record<string, string>,
+    skills: [
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager"],
+      ["plattform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
+      ["betrieb", "zfs, proxmox, borg, netbird, grafana, victoriametrics"],
+      ["lokale ki", "llama.cpp, vllm, lokale llms und embedding-modelle"],
+      ["code", "nix, bash, rust, go"],
+      ["sprachen", "deutsch (muttersprache), englisch (fließend)"],
+    ],
+    volunteering: [
+      {
+        when: "2011",
+        title: "entwicklungshelfer",
+        where: "Himalayan Project e.V. · nepal",
+      },
+    ] as Entry[],
+    print: "drucken / als pdf speichern",
+    note: "der name ist in der gedruckten fassung lesbar",
+  },
+}[lang];
+
+const projects = (await getCollection("projects")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+const langs = [
+  { lang: "en", href: "/cv/" },
+  { lang: "de", href: "/cv/de/" },
+];
+---
+
+<article class="sheet" lang={lang}>
+  <header class="top">
+    <div>
+      <h1 class="name" role="img" aria-label="Simon S." set:html={nameSvg} />
+      <p class="role">{t.role}</p>
+      <p class="place">{t.place}</p>
+    </div>
+    <ul>
+      <li><a href="mailto:simon@nx3.eu">simon@nx3.eu</a></li>
+      <li><a href="https://github.com/fosskar">github.com/fosskar</a></li>
+      <li>
+        <a href="https://matrix.to/#/@fosskar:fosskar.de">@fosskar:fosskar.de</a>
+      </li>
+      <li><a href="https://bliki.fosskar.eu">bliki.fosskar.eu</a></li>
+    </ul>
+  </header>
+
+  <section class="row">
+    <h2>{t.sections.profile}</h2>
+    <p>{t.profile}</p>
+  </section>
+
+  {
+    (
+      [
+        ["experience", t.experience],
+        ["education", t.education],
+        ["certificates", t.certificates],
+      ] as const
+    ).map(([key, entries]) => (
+      <section class="row">
+        <h2>{t.sections[key]}</h2>
+        <div>
+          {entries.map((e) => (
+            <div class="item">
+              <div class="head">
+                <h3>{e.title}</h3>
+                <span class="when">{e.when}</span>
+              </div>
+              {e.where && <p class="where">{e.where}</p>}
+              {e.text && <p>{e.text}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="row">
+    <h2>{t.sections.projects}</h2>
+    <div>
+      {
+        projects.map((p) => (
+          <div class="item">
+            <div class="head">
+              <h3>
+                {p.data.repo ? (
+                  <a href={p.data.repo}>{p.data.title}</a>
+                ) : (
+                  p.data.title
+                )}
+              </h3>
+              <span class="when">{p.data.tags.slice(0, 2).join(" · ")}</span>
+            </div>
+            <p>{t.projects[p.id] ?? p.data.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="row">
+    <h2>{t.sections.skills}</h2>
+    <dl class="skills">
+      {
+        t.skills.map(([k, v]) => (
+          <>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section class="row">
+    <h2>{t.sections.volunteering}</h2>
+    <div>
+      {
+        t.volunteering.map((e) => (
+          <div class="item">
+            <div class="head">
+              <h3>{e.title}</h3>
+              <span class="when">{e.when}</span>
+            </div>
+            {e.where && <p class="where">{e.where}</p>}
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</article>
+<div class="tools">
+  <nav class="lang-switch" aria-label="language">
+    {
+      langs.map((l) => (
+        <a
+          href={l.href}
+          hreflang={l.lang}
+          lang={l.lang}
+          aria-current={l.lang === lang ? "page" : undefined}
+        >
+          {l.lang}
+        </a>
+      ))
+    }
+  </nav>
+  <span class="note">{t.note}</span>
+  <button type="button" data-print>{t.print}</button>
+</div>
+
+<script>
+  document
+    .querySelectorAll("[data-print]")
+    .forEach((b) => b.addEventListener("click", () => print()));
+</script>
+
+<style>
+  .sheet {
+    --paper: #fdfcf9;
+    --ink: #1a1a1a;
+    --soft: #5e5e5e;
+    --rule: #e6e3dc;
+    --ink-accent: #0b6e5b;
+    color-scheme: light;
+    max-width: 62rem;
+    margin: 3rem auto 0;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 4.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    line-height: 1.6;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      0 20px 60px rgba(0, 0, 0, 0.25);
+  }
+  .sheet a {
+    color: var(--ink);
+    text-decoration-color: var(--rule);
+    text-underline-offset: 3px;
+  }
+  .sheet a:hover {
+    color: var(--ink-accent);
+  }
+  .sheet :is(h1, h2, h3) {
+    color: var(--ink);
+  }
+  .top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: end;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .name {
+    margin: 0;
+    line-height: 0;
+  }
+  .name :global(svg) {
+    height: 3.25rem;
+    width: auto;
+    filter: blur(7px);
+  }
+  .role {
+    margin: 0.75rem 0 0;
+    color: var(--soft);
+    font-size: 1.05rem;
+  }
+  .place {
+    margin: 0.2rem 0 0;
+    color: var(--soft);
+  }
+  .top ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: right;
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+  .top li + li {
+    margin: 0;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: 2rem;
+    padding: 1.6rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .row:last-child {
+    border: 0;
+  }
+  .row > h2 {
+    margin: 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-accent);
+    font-weight: 600;
+    padding-top: 0.25rem;
+  }
+  .row p {
+    margin: 0;
+  }
+  .item + .item {
+    margin-top: 1rem;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .item h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .item h3 a {
+    text-decoration: none;
+  }
+  .when {
+    color: var(--soft);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .item p {
+    margin: 0.15rem 0 0;
+    color: var(--soft);
+    font-size: 0.95rem;
+  }
+  .item p.where {
+    color: var(--ink);
+    font-size: 0.9rem;
+  }
+  .skills {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.35rem 1rem;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .skills dt {
+    color: var(--soft);
+  }
+  .skills dd {
+    margin: 0;
+  }
+  .tools {
+    max-width: 62rem;
+    margin: 1rem auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .tools button {
+    font: inherit;
+    color: var(--text);
+    background: none;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .lang-switch {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .lang-switch a {
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .lang-switch a[aria-current="page"] {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  @media (max-width: 44rem) {
+    .sheet {
+      padding: 2rem 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .top,
+    .row {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    .top ul {
+      text-align: left;
+    }
+    .tools {
+      flex-wrap: wrap;
+    }
+  }
+  @media print {
+    @page {
+      margin: 14mm 16mm;
+    }
+    /* the sheet sizes everything in rem, so scaling the root scales the cv */
+    :global(html) {
+      font-size: 10.5px;
+    }
+    .sheet {
+      box-shadow: none;
+      margin: 0;
+      padding: 0;
+      max-width: none;
+      background: none;
+    }
+    .row {
+      padding: 0.9rem 0;
+    }
+    .item {
+      break-inside: avoid;
+    }
+    .row > h2 {
+      break-after: avoid;
+    }
+    .name :global(svg) {
+      filter: none;
+    }
+    .tools {
+      display: none;
+    }
+  }
+</style>
