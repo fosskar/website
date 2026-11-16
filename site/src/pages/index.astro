@@ -17,83 +17,54 @@ const notes = (await getCollection("wiki")).sort(
 );
 const day = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
 
-// hover text per top-level attribute, in both page languages
-const hovers: Record<string, { en: string; de: string }> = {
-  lang: {
-    en: "the language of this page. click the value to switch between en and de.",
-    de: "die sprache dieser seite. klick auf den wert, um zwischen en und de zu wechseln.",
-  },
-  colorScheme: {
-    en: "dark or light. click the value to switch; the choice is remembered.",
-    de: "dunkel oder hell. klick auf den wert zum umschalten; die wahl wird gespeichert.",
-  },
-  name: { en: "the person behind fosskar.", de: "die person hinter fosskar." },
-  role: {
-    en: "devops engineer and sre since 2023, in a team of four.",
-    de: "devops engineer und sre seit 2023, in einem team aus vier leuten.",
-  },
-  location: { en: "hamburg, germany.", de: "hamburg." },
-  likes: {
-    en: "what i spend my free time on. local llms means llama.cpp and vllm in my homelab, with regular benchmarks.",
-    de: "womit ich meine freizeit verbringe. lokale llms heißt llama.cpp und vllm im homelab, mit regelmäßigen benchmarks.",
-  },
-  writing: {
-    en: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}.`,
-    de: `blog: ${posts.length} ${posts.length === 1 ? "beitrag" : "beiträge"}, neuester vom ${day(posts[0]?.data.date)}. wiki: ${notes.length} notizen, neueste vom ${day(notes[0]?.data.date)}.`,
-  },
-  work: {
-    en: "my cv in english and german, and my code.",
-    de: "mein lebenslauf auf englisch und deutsch, und mein code.",
-  },
-  contact: {
-    en: "mail or matrix, whichever you prefer.",
-    de: "mail oder matrix, wie du magst.",
-  },
+// hover text per top-level attribute
+const hovers: Record<string, string> = {
+  name: "the person behind fosskar.",
+  role: "devops engineer and sre since 2023, in a team of four.",
+  location: "hamburg, germany.",
+  colorScheme: "dark or light. click the value to switch; the choice is remembered.",
+  likes:
+    "what i spend my free time on. local llms means llama.cpp and vllm in my homelab, with regular benchmarks.",
+  writing: `blog: ${posts.length} post${posts.length === 1 ? "" : "s"}, newest ${day(posts[0]?.data.date)}. wiki: ${notes.length} notes, newest ${day(notes[0]?.data.date)}.`,
+  work: "my cv in english and german, as a page and as pdf, and my code.",
+  contact: "mail or matrix, whichever you prefer.",
 };
 const types: Record<string, string> = Object.fromEntries(
   Object.entries(fosskar).map(([k, v]) => [k, typeOf(v)]),
 );
 
-// german replacements for the values and comment that differ
-const german: Record<string, string> = {
-  "# kubernetes at work, nixos everywhere else": "# beruflich kubernetes, privat überall nixos",
-  '"self-hosting"': '"self-hosting"',
-  '"local llms"': '"lokale llms"',
-  '"fixing things properly"': '"dinge richtig reparieren"',
-};
-
-const unquote = (s: string) => s.slice(1, -1);
-const esc = (s: string) =>
-  s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
-  .map((tokens) =>
-    tokens
+  .map((tokens, i) => {
+    const code = tokens
       .map((t) => {
         const text = esc(t.text);
-        if (t.kind === "comment")
-          return `<span class="c" data-en="${text}" data-de="${esc(german[t.text] ?? t.text)}">${text}</span>`;
+        if (t.kind === "comment") return `<span class="c">${text}</span>`;
         if (t.kind === "attr") {
           const h = t.path && !t.path.includes(".") ? hovers[t.path] : undefined;
           if (!h) return `<span class="k">${text}</span>`;
-          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="en">${esc(h.en)}</span><span class="de">${esc(h.de)}</span></span></span>`;
+          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
         }
         if (t.kind === "string") {
-          if (t.path === "lang" || t.path === "colorScheme")
-            return `<button class="opt" type="button" data-opt="${t.path}">${text}</button>`;
-          const href = linkFor(unquote(t.text));
-          if (href)
-            return `<a class="s" href="${esc(href)}"${t.path === "work.cv" ? ' data-href="cv"' : ""}>${text}</a>`;
-          return `<span class="s" data-en="${text}" data-de="${esc(german[t.text] ?? t.text)}">${text}</span>`;
+          if (t.path === "colorScheme")
+            return `<button class="opt" type="button" data-opt="colorScheme">${text}</button>`;
+          const href = linkFor(t.text.slice(1, -1));
+          if (href) return `<a class="s" href="${esc(href)}">${text}</a>`;
+          return `<span class="s">${text}</span>`;
         }
         if (t.kind === "punct") return `<span class="p">${text}</span>`;
         return text;
       })
-      .join(""),
-  )
+      .join("");
+    return `<span class="ln" aria-hidden="true">${i + 1}</span>${code}`;
+  })
   .join("\n");
-const outPath = storePath ?? `/nix/store/…-website-0.1.0`;
+
+// the build log replays real astro output; the page count matches this build
+const pages = 8 + posts.length + notes.length;
+const outPath = storePath ?? "/nix/store/…-website-0.1.0";
 const sections = ["about", "blog", "cv", "wiki"];
 ---
 
@@ -103,17 +74,40 @@ const sections = ["about", "blog", "cv", "wiki"];
   wide
 >
   <div class="home">
-    <pre class="nix" id="nix"><code set:html={html} /></pre>
+    <figure class="frame file">
+      <figcaption><span class="tab">fosskar.nix</span></figcaption>
+      <pre class="nix" id="nix"><code set:html={html} /></pre>
+    </figure>
 
-    <div class="term" id="term">
-      <div class="cmd"><span class="prompt">$</span> <span class="typed">nix build github:fosskar/website --print-out-paths</span></div>
-      <div class="out path">{outPath}</div>
-      <div class="cmd"><span class="prompt">$</span> <span class="typed">ls -d result/*/</span></div>
-      <ul class="ls" aria-label="sections">
-        {sections.map((s) => <li><a href={`/${s}/`} data-href={s}><span class="dim">result/</span>{s}/</a></li>)}
-      </ul>
-      <div class="cmd"><span class="prompt">$</span> <span class="cursor"></span></div>
-    </div>
+    <figure class="frame term" id="term" title="click to run the build again">
+      <figcaption>~/fosskar</figcaption>
+      <div class="screen">
+        <div class="cmd"><span class="prompt">$</span> <span class="typed">nix build github:fosskar/website -L --print-out-paths</span></div>
+        <div class="log">website&gt; [content] Syncing content</div>
+        <div class="log">website&gt; [content] Synced content</div>
+        <div class="log">website&gt; [build] output: "static"</div>
+        <div class="log">website&gt; [build] Collecting build info...</div>
+        <div class="log">website&gt; [build] Building static entrypoints...</div>
+        <div class="log">website&gt; [build] {pages} page(s) built</div>
+        <div class="log">website&gt; [build] Complete!</div>
+        <div class="out">{outPath}</div>
+        <div class="cmd"><span class="prompt">$</span> <span class="typed">tree -d -L 1 result</span></div>
+        <div class="out">result</div>
+        <ul class="tree" aria-label="sections">
+          {
+            sections.map((s, i) => (
+              <li>
+                <span class="dim">{i === sections.length - 1 ? "└──" : "├──"}</span>
+                <a href={`/${s}/`}>{s}</a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="out">&nbsp;</div>
+        <div class="out">{sections.length} directories</div>
+        <div class="cmd"><span class="prompt">$</span> <span class="cursor"></span></div>
+      </div>
+    </figure>
   </div>
 </Layout>
 
@@ -121,81 +115,63 @@ const sections = ["about", "blog", "cv", "wiki"];
   const root = document.documentElement;
   const nix = document.getElementById("nix")!;
 
-  // lang: swap the shown values and point cv/about at the german pages
-  function setLang(lang: string) {
-    nix.dataset.lang = lang;
-    nix.querySelectorAll<HTMLElement>("[data-en]").forEach((e) => {
-      e.textContent = e.dataset[lang as "en" | "de"]!;
-    });
-    document.querySelectorAll<HTMLAnchorElement>("[data-href]").forEach((a) => {
-      const s = a.dataset.href!;
-      if (s === "cv" || s === "about") a.href = lang === "de" ? `/${s}/de/` : `/${s}/`;
-    });
-    nix.querySelector<HTMLElement>('[data-opt="lang"]')!.textContent = `"${lang}"`;
-  }
-  function setScheme(scheme: string) {
-    root.dataset.theme = scheme;
-    nix.querySelector<HTMLElement>('[data-opt="colorScheme"]')!.textContent = `"${scheme}"`;
-  }
-  setLang(localStorage.getItem("lang") ?? nix.querySelector<HTMLElement>('[data-opt="lang"]')!.textContent!.slice(1, -1));
-  setScheme(root.dataset.theme!);
-  nix.querySelectorAll<HTMLButtonElement>(".opt").forEach((b) =>
-    b.addEventListener("click", () => {
-      if (b.dataset.opt === "lang") {
-        const next = nix.dataset.lang === "en" ? "de" : "en";
-        localStorage.setItem("lang", next);
-        setLang(next);
-      } else {
-        const next = root.dataset.theme === "dark" ? "light" : "dark";
-        localStorage.setItem("colorScheme", next);
-        setScheme(next);
-      }
-    }),
-  );
+  // colorScheme: switch the whole site and remember the choice
+  const opt = nix.querySelector<HTMLButtonElement>('[data-opt="colorScheme"]')!;
+  const show = () => (opt.textContent = `"${root.dataset.theme}"`);
+  show();
+  opt.addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    localStorage.setItem("colorScheme", next);
+    show();
+  });
 
-  // the build plays once per session; the finished state is in the html
+  // the build: plays once per session, again on click; the finished state is
+  // in the html for no-js and reduced motion
   const term = document.getElementById("term")!;
+  const steps = [...term.querySelector(".screen")!.children] as HTMLElement[];
+  const texts = steps.map((s) => s.querySelector(".typed")?.textContent ?? "");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let running = false;
+
+  async function play() {
+    if (running) return;
+    running = true;
+    let skip = false;
+    const stop = (e: Event) => {
+      if (!(e.target as HTMLElement).closest("#term")) skip = true;
+    };
+    addEventListener("keydown", stop);
+    addEventListener("pointerdown", stop);
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, skip ? 0 : ms));
+    steps.forEach((s) => (s.hidden = true));
+    await wait(600);
+    for (const [i, s] of steps.entries()) {
+      s.hidden = false;
+      const typed = s.querySelector<HTMLElement>(".typed");
+      if (typed) {
+        typed.textContent = "";
+        for (const ch of texts[i]!) {
+          typed.textContent += ch;
+          await wait(55 + Math.random() * 45);
+        }
+        await wait(500);
+      } else if (s.classList.contains("log")) {
+        await wait(260 + Math.random() * 260);
+      } else {
+        await wait(s.classList.contains("out") && i < 10 ? 700 : 140);
+      }
+    }
+    removeEventListener("keydown", stop);
+    removeEventListener("pointerdown", stop);
+    running = false;
+  }
   if (!reduced && !sessionStorage.getItem("built")) {
     sessionStorage.setItem("built", "1");
-    const steps = [...term.children] as HTMLElement[];
-    const typed = steps.map((s) => s.querySelector<HTMLElement>(".typed"));
-    const texts = typed.map((t) => t?.textContent ?? "");
-    steps.forEach((s) => (s.hidden = true));
-    let skip = false;
-    const stop = () => (skip = true);
-    addEventListener("keydown", stop, { once: true });
-    addEventListener("pointerdown", stop, { once: true });
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, skip ? 0 : ms));
-    (async () => {
-      await wait(500);
-      for (const [i, s] of steps.entries()) {
-        s.hidden = false;
-        const t = typed[i];
-        if (t) {
-          t.textContent = "";
-          for (const ch of texts[i]!) {
-            t.textContent += ch;
-            await wait(28 + Math.random() * 30);
-          }
-          await wait(260);
-        } else {
-          await wait(s.classList.contains("path") ? 700 : 150);
-        }
-      }
-    })();
+    play();
   }
-
-  // arrow keys move through the listing, enter opens
-  const links = [...term.querySelectorAll<HTMLAnchorElement>(".ls a")];
-  let sel = -1;
-  addEventListener("keydown", (e) => {
-    if ((e.target as HTMLElement).closest("input, textarea, dialog")) return;
-    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-    if (!step) return;
-    e.preventDefault();
-    sel = (sel + step + links.length) % links.length;
-    links[sel]!.focus();
+  term.addEventListener("click", (e) => {
+    if (!reduced && !(e.target as HTMLElement).closest("a")) play();
   });
 </script>
 
@@ -203,19 +179,49 @@ const sections = ["about", "blog", "cv", "wiki"];
   /* global: the expression's html is built as a string, which scoped styles
      cannot reach; every selector stays under .home */
   .home {
-    max-width: 46rem;
-    margin: 1rem auto 0;
-    font: 1rem/1.85 var(--mono);
+    max-width: 50rem;
+    margin: 0 auto;
+    padding-top: 2.5rem;
+    display: grid;
+    gap: 1.75rem;
+    font: 0.95rem/1.85 var(--mono);
     color: var(--muted);
+  }
+
+  /* a file and a terminal: lighter frames with a title strip */
+  .home .frame {
+    margin: 0;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .home .frame figcaption {
+    padding: 0.35rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--dim);
+    font-size: 0.8rem;
+  }
+  .home .file .tab {
+    color: var(--text);
   }
   .home pre.nix {
     margin: 0;
-    padding: 0;
+    padding: 1rem 1.25rem 1.1rem 0;
     background: none !important;
     border: 0;
-    overflow: visible;
-    white-space: pre-wrap;
+    border-radius: 0;
+    overflow-x: auto;
     font: inherit;
+  }
+  .home .ln {
+    display: inline-block;
+    width: 3rem;
+    padding-right: 1.25rem;
+    text-align: right;
+    color: var(--dim);
+    opacity: 0.6;
+    user-select: none;
   }
   .home .c {
     color: var(--dim);
@@ -265,7 +271,7 @@ const sections = ["about", "blog", "cv", "wiki"];
     width: max-content;
     max-width: 24rem;
     padding: 0.5rem 0.75rem;
-    background: var(--bg-alt);
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.82rem;
@@ -277,24 +283,22 @@ const sections = ["about", "blog", "cv", "wiki"];
   .home .tip .t {
     color: var(--accent);
   }
-  .home .tip :is(.en, .de) {
+  .home .tip .d {
     display: block;
     margin-top: 0.25rem;
     color: var(--muted);
-  }
-  .home .nix:not([data-lang="de"]) .tip .de,
-  .home .nix[data-lang="de"] .tip .en {
-    display: none;
   }
   .home .hover:is(:hover, :focus-visible) .tip {
     display: block;
   }
 
-  /* the build below the expression */
-  /* room for all five lines, so the page doesn't grow while the build types */
+  /* the terminal; its height is fixed so the page doesn't grow while typing */
   .home .term {
-    margin-top: 2.25rem;
-    min-height: calc(5 * 1.85em);
+    cursor: pointer;
+  }
+  .home .term .screen {
+    padding: 1rem 1.25rem 1.1rem;
+    min-height: calc(18 * 1.85em + 2.1rem);
   }
   .home .prompt {
     color: var(--accent);
@@ -302,52 +306,38 @@ const sections = ["about", "blog", "cv", "wiki"];
   .home .cmd {
     color: var(--strong);
   }
-  .home .out.path {
+  .home .log {
     color: var(--dim);
+  }
+  .home .out {
+    color: var(--muted);
     overflow-wrap: anywhere;
   }
-  .home .ls {
+  .home .tree {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 2rem;
   }
-  .home .ls li + li {
+  .home .tree li + li {
     margin: 0;
   }
-  .home .ls a {
+  .home .tree a {
     color: #5a8ee5;
     text-decoration: none;
-    outline: none;
     padding: 0 0.15rem;
-    margin: 0 -0.15rem;
     border-radius: 3px;
   }
-  .home .ls a:is(:hover, :focus-visible) {
+  .home .tree a:is(:hover, :focus-visible) {
     background: var(--accent);
     color: var(--bg);
-  }
-  .home .ls a:is(:hover, :focus-visible) .dim {
-    color: inherit;
+    outline: none;
   }
   .home .cursor {
     display: inline-block;
-    width: 0.6em;
-    height: 1.1em;
+    width: 0.55em;
+    height: 1.05em;
     vertical-align: -0.2em;
     background: var(--accent);
-    animation: blink 1.1s steps(1) infinite;
-  }
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .home .cursor {
-      animation: none;
-    }
+    opacity: 0.55;
   }
 </style>
