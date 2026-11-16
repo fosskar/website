@@ -16,7 +16,7 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 
 The build has three steps in `nix/package.nix`:
 
-- `website-unwrapped`: the astro build. It gets its own output path as `SITE_STORE_PATH` for the footer and for the build log on the home page
+- `website-unwrapped`: the astro build. It gets its own output path as `SITE_STORE_PATH` for the footer
 - `cv` (`nix build .#cv`): headless chromium prints `/cv/` and `/cv/de/` of the unwrapped site to `cv.pdf` and `lebenslauf.pdf`, through a local http server because the pages load assets from absolute paths. The pdf comes from the cv page's `@media print` styles
 - `website` (default): the unwrapped site plus the pdfs under `cv/`. It replaces the unwrapped store path in the html with its own. The page then shows the path `nix build` prints
 

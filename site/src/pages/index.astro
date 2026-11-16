@@ -45,7 +45,7 @@ const html = lines
         if (t.kind === "attr") {
           const h = t.path && !t.path.includes(".") ? hovers[t.path] : undefined;
           if (!h) return `<span class="k">${text}</span>`;
-          return `<span class="k hover" tabindex="0">${text}<span class="tip" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
+          return `<span class="k hover" tabindex="0">${text}<span class="tip${i >= lines.length / 2 ? " up" : ""}" role="tooltip"><span class="t">${t.path}</span> : ${types[t.path!]}<span class="d">${esc(h)}</span></span></span>`;
         }
         if (t.kind === "string") {
           if (t.path === "colorScheme")
@@ -74,13 +74,19 @@ const sections = ["about", "blog", "cv", "wiki"];
   wide
 >
   <div class="home">
-    <figure class="frame file">
-      <figcaption><span class="tab">fosskar.nix</span></figcaption>
+    <figure class="frame file" aria-label="fosskar.nix">
+      <figcaption class="tabs"><span class="tab">fosskar.nix</span></figcaption>
       <pre class="nix" id="nix"><code set:html={html} /></pre>
+      <div class="status">
+        <span>nix</span><span>{lines.length} lines</span><span>utf-8</span>
+      </div>
     </figure>
 
     <figure class="frame term" id="term" title="click to run the build again">
-      <figcaption>~/fosskar</figcaption>
+      <figcaption class="titlebar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>terminal — ~/fosskar</span>
+      </figcaption>
       <div class="screen">
         <div class="cmd"><span class="prompt">$</span> <span class="typed">nix build github:fosskar/website -L --print-out-paths</span></div>
         <div class="log">website&gt; [content] Syncing content</div>
@@ -91,8 +97,8 @@ const sections = ["about", "blog", "cv", "wiki"];
         <div class="log">website&gt; [build] {pages} page(s) built</div>
         <div class="log">website&gt; [build] Complete!</div>
         <div class="out">{outPath}</div>
-        <div class="cmd"><span class="prompt">$</span> <span class="typed">tree -d -L 1 result</span></div>
-        <div class="out">result</div>
+        <div class="cmd"><span class="prompt">$</span> <span class="typed paste">tree -d -L 1 {outPath}</span></div>
+        <div class="out">{outPath}</div>
         <ul class="tree" aria-label="sections">
           {
             sections.map((s, i) => (
@@ -145,7 +151,7 @@ const sections = ["about", "blog", "cv", "wiki"];
     addEventListener("pointerdown", stop);
     const wait = (ms: number) => new Promise((r) => setTimeout(r, skip ? 0 : ms));
     steps.forEach((s) => (s.hidden = true));
-    await wait(600);
+    await wait(250);
     for (const [i, s] of steps.entries()) {
       s.hidden = false;
       const typed = s.querySelector<HTMLElement>(".typed");
@@ -153,13 +159,13 @@ const sections = ["about", "blog", "cv", "wiki"];
         typed.textContent = "";
         for (const ch of texts[i]!) {
           typed.textContent += ch;
-          await wait(55 + Math.random() * 45);
+          await wait(typed.classList.contains("paste") ? 6 : 12 + Math.random() * 8);
         }
-        await wait(500);
+        await wait(150);
       } else if (s.classList.contains("log")) {
-        await wait(260 + Math.random() * 260);
+        await wait(60);
       } else {
-        await wait(s.classList.contains("out") && i < 10 ? 700 : 140);
+        await wait(50);
       }
     }
     removeEventListener("keydown", stop);
@@ -181,29 +187,76 @@ const sections = ["about", "blog", "cv", "wiki"];
   .home {
     max-width: 50rem;
     margin: 0 auto;
-    padding-top: 2.5rem;
+    padding-top: 1.5rem;
     display: grid;
     gap: 1.75rem;
-    font: 0.95rem/1.85 var(--mono);
+    font: 0.95rem/1.65 var(--mono);
     color: var(--muted);
   }
 
-  /* a file and a terminal: lighter frames with a title strip */
+  /* an editor tab and a terminal window, so they read as file and shell */
   .home .frame {
     margin: 0;
-    background: var(--bg-alt);
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
   }
-  .home .frame figcaption {
-    padding: 0.35rem 1rem;
+  .home .file {
+    background: var(--bg-alt);
+  }
+  .home .tabs {
+    display: flex;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
-    color: var(--dim);
     font-size: 0.8rem;
   }
-  .home .file .tab {
-    color: var(--text);
+  .home .tab {
+    padding: 0.4rem 1.1rem;
+    background: var(--bg-alt);
+    color: var(--strong);
+    border-right: 1px solid var(--border);
+    box-shadow: inset 0 2px 0 var(--accent);
+    margin-bottom: -1px;
+  }
+  .home .status {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    padding: 0.2rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--dim);
+    font-size: 0.75rem;
+  }
+  /* terminals stay dark, whatever the site theme is */
+  .home .term {
+    --term-bg: #0f0f0f;
+    background: var(--term-bg);
+    border-color: #2a2a2a;
+    color: #9d9d9d;
+  }
+  .home .titlebar {
+    position: relative;
+    padding: 0.4rem 1rem;
+    text-align: center;
+    background: #181818;
+    border-bottom: 1px solid #2a2a2a;
+    color: #7a7a7a;
+    font-size: 0.78rem;
+  }
+  .home .dots {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 0.4rem;
+  }
+  .home .dots i {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #3a3a3a;
   }
   .home pre.nix {
     margin: 0;
@@ -280,6 +333,11 @@ const sections = ["about", "blog", "cv", "wiki"];
     white-space: normal;
     cursor: default;
   }
+  /* opens upward in the lower half, because the scrolling pre clips it */
+  .home .tip.up {
+    top: auto;
+    bottom: 1.9em;
+  }
   .home .tip .t {
     color: var(--accent);
   }
@@ -298,20 +356,23 @@ const sections = ["about", "blog", "cv", "wiki"];
   }
   .home .term .screen {
     padding: 1rem 1.25rem 1.1rem;
-    min-height: calc(18 * 1.85em + 2.1rem);
+    min-height: calc(18 * 1.65em + 2.1rem);
   }
   .home .prompt {
-    color: var(--accent);
+    color: #1aab8e;
   }
   .home .cmd {
-    color: var(--strong);
+    color: #f0f0f0;
   }
   .home .log {
-    color: var(--dim);
+    color: #6a6a6a;
   }
   .home .out {
-    color: var(--muted);
+    color: #9d9d9d;
     overflow-wrap: anywhere;
+  }
+  .home .term .dim {
+    color: #6a6a6a;
   }
   .home .tree {
     list-style: none;
@@ -328,8 +389,8 @@ const sections = ["about", "blog", "cv", "wiki"];
     border-radius: 3px;
   }
   .home .tree a:is(:hover, :focus-visible) {
-    background: var(--accent);
-    color: var(--bg);
+    background: #1aab8e;
+    color: #0f0f0f;
     outline: none;
   }
   .home .cursor {
@@ -337,7 +398,7 @@ const sections = ["about", "blog", "cv", "wiki"];
     width: 0.55em;
     height: 1.05em;
     vertical-align: -0.2em;
-    background: var(--accent);
+    background: #1aab8e;
     opacity: 0.55;
   }
 </style>
