@@ -114,10 +114,10 @@ const experience = [
   heroSearch
 >
   <section class="hero">
-    <div>
+    <div class="reveal">
       <h1>declarative.<br /><span class="outline">immutable.</span><br />ephemeral.</h1>
     </div>
-    <div class="intro">
+    <div class="intro reveal">
       <p class="lede">
         <strong>i'm simon,</strong>
         a devops engineer and sre. kubernetes and gitops at work, nix everywhere
@@ -137,7 +137,7 @@ const experience = [
   <dl class="facts">
     {
       facts.map((f) => (
-        <div class="card">
+        <div class="card reveal">
           <dt>{f.label}</dt>
           <dd>{f.value}</dd>
         </div>
@@ -146,7 +146,7 @@ const experience = [
   </dl>
 
   <section id="focus">
-    <div class="label"><h2>what i love and what i do</h2></div>
+    <div class="label reveal"><h2>what i love and what i do</h2></div>
     <div class="services">
       {
         services.map((s) => (
@@ -163,7 +163,7 @@ const experience = [
   </section>
 
   <section id="work">
-    <div class="label">
+    <div class="label reveal">
       <h2>selected work</h2>
       <a href="https://github.com/fosskar">github →</a>
     </div>
@@ -185,7 +185,7 @@ const experience = [
   </section>
 
   <section id="experience">
-    <div class="label"><h2>experience</h2><a href="/cv/">full cv →</a></div>
+    <div class="label reveal"><h2>experience</h2><a href="/cv/">full cv →</a></div>
     <div class="xp">
       {
         experience.map((x) => (
@@ -202,7 +202,7 @@ const experience = [
   </section>
 
   <section id="writing">
-    <div class="label"><h2>writing</h2><a href="/blog/">blog</a><a href="/wiki/">wiki</a></div>
+    <div class="label reveal"><h2>writing</h2><a href="/blog/">blog</a><a href="/wiki/">wiki</a></div>
     <div class="writing">
       {
         writing.map((w) => (
