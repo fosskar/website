@@ -1,6 +1,6 @@
 ---
-// the cv follows the site theme on screen and prints as a light one-page
-// pdf. the name is letter outlines, not text: scrapers and search
+// the cv follows the site theme on screen and prints as a light pdf of up
+// to two pages. the name is letter outlines, not text: scrapers and search
 // engines cannot read the surname, which is also blurred on screen and
 // sharp in print.
 import { getCollection } from "astro:content";
@@ -17,6 +17,7 @@ interface Entry {
   title: string;
   where?: string;
   text?: string;
+  points?: string[];
 }
 
 const t = {
@@ -26,65 +27,89 @@ const t = {
     sections: {
       profile: "profile",
       experience: "experience",
-      education: "education",
       projects: "open source",
+      certifications: "certifications",
       skills: "skills",
+      education: "education",
     },
     profile:
-      "devops engineer with a love for nix/nixos, self-hosting and local llm inference. at work i run on-prem kubernetes with talos, argocd and gitlab ci; at home everything is declared in nix. when something i use breaks, i report it or send a fix upstream.",
+      "devops engineer and sre with a focus on nix/nixos, kubernetes and gitops, and a love for self-hosting and local llm inference. runs on-prem kubernetes with talos, argocd and gitlab ci at work and a nixos fleet at home. came to it from eleven years in machining, metrology and testing.",
     experience: [
       {
         when: "2023 — now",
         title: "devops engineer / sre",
         where: "hamburg",
-        text: "team of four, around 20 on-prem kubernetes clusters: talos, argocd, gitlab ci, helm, ansible, vault.",
+        points: [
+          "operates around 20 on-prem kubernetes clusters in a team of four, split between devops and sre work",
+          "runs the cluster lifecycle with talos and talosctl",
+          "delivers workloads through gitops with argocd and helm",
+          "builds and maintains ci/cd pipelines in gitlab ci",
+          "automates configuration with ansible, manages secrets with vault",
+        ],
       },
       {
         when: "2022 — 2023",
         title: "devops engineer training",
         where: "bootcamp, hamburg",
+        text: "five-month full-time program: linux, bash, docker, kubernetes, ci/cd with jenkins and gitlab, elastic stack, scrum.",
       },
       {
         when: "2018 — 2019",
-        title: "test technician",
+        title: "test technician, metrology and testing",
         where: "Festo, esslingen",
       },
       {
         when: "2012 — 2014",
-        title: "test mechanic, industrialisation china and eu",
+        title: "industrialisation china and eu; measurement and test mechanic",
         where: "thyssenkrupp Presta, esslingen",
-      },
-    ] as Entry[],
-    education: [
-      {
-        when: "2023",
-        title: "GitOps Fundamentals, GitOps at Scale",
-        where: "Codefresh",
-      },
-      {
-        when: "2014 — 2017",
-        title: "abitur (university entrance qualification)",
-        where: "stuttgart",
       },
       {
         when: "2007 — 2011",
-        title: "apprenticeship as machinist",
-        where: "Ewo Fluid Power",
+        title: "apprenticeship and work as machinist",
+        where: "Ewo Fluid Power, bissingen an der teck",
       },
     ] as Entry[],
     projects: {
-      nixfiles: "my machines and home network, declared with nixos and clan-core",
-      ssync: "peer-to-peer sync of coding-agent sessions across machines",
-      "pi-pack": "skills, extensions and prompts for the pi coding agent",
-      fencr: "firecracker microvm sandboxes for ai agents on nixos",
+      nixfiles:
+        "nixos and clan-core configuration for a fleet of machines, from workstations and a nas to a vps, a remote builder and the openwrt router",
+      ssync:
+        "serverless peer-to-peer sync of coding-agent sessions across machines, encrypted with age, over iroh (rust)",
+      "pi-pack":
+        "skills, extensions and prompts for the pi coding agent, installable through a home-manager module",
+      fencr:
+        "firecracker microvm sandboxes for ai agents on nixos; keys stay on the host, egress and mcp tools are allow-listed",
+      "harbor-labeler":
+        "kubernetes cronjob that labels running images in harbor so retention can collect the rest",
     } as Record<string, string>,
+    upstream: {
+      title: "upstream",
+      text: "regular issues and pull requests to the open source projects i use.",
+    },
+    certifications: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "devops engineer diploma", where: "bootcamp" },
+    ] as Entry[],
     skills: [
-      ["nix", "nix, nixos, clan-core, flake-parts, home-manager"],
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
       ["platform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
-      ["operations", "zfs, borg, netbird, grafana, victoriametrics"],
-      ["local ai", "llama.cpp, vllm, llm and embedding models"],
+      ["operations", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
+      ["local ai", "llama.cpp, vllm, llm, embedding and decision models"],
+      ["code", "nix, bash, rust, go"],
       ["languages", "german (native), english (fluent)"],
     ],
+    education: [
+      {
+        when: "2014 — 2017",
+        title: "abitur (university entrance qualification)",
+        where: "Kolping Bildungscampus, stuttgart",
+      },
+      {
+        when: "2007 — 2011",
+        title: "apprenticeship as machinist (zerspanungsmechaniker)",
+        where: "Ewo Fluid Power",
+      },
+    ] as Entry[],
     print: "print / save as pdf",
   },
   de: {
@@ -93,23 +118,31 @@ const t = {
     sections: {
       profile: "profil",
       experience: "berufserfahrung",
-      education: "ausbildung",
       projects: "open source",
+      certifications: "zertifikate",
       skills: "kenntnisse",
+      education: "ausbildung",
     },
     profile:
-      "devops engineer mit einer vorliebe für nix/nixos, self-hosting und lokale llm-inferenz. im job betreibe ich on-prem kubernetes mit talos, argocd und gitlab ci; privat ist alles deklarativ in nix beschrieben. wenn etwas kaputt ist, das ich nutze, melde ich es oder schicke einen fix upstream.",
+      "devops engineer und sre mit schwerpunkt nix/nixos, kubernetes und gitops, mit einer vorliebe für self-hosting und lokale llm-inferenz. betreibt im job on-prem kubernetes mit talos, argocd und gitlab ci und privat eine nixos-flotte. davor elf jahre in zerspanung, messtechnik und testing.",
     experience: [
       {
         when: "2023 — heute",
         title: "devops engineer / sre",
         where: "hamburg",
-        text: "team aus vier leuten, rund 20 on-prem kubernetes-cluster: talos, argocd, gitlab ci, helm, ansible, vault.",
+        points: [
+          "betrieb von rund 20 on-prem kubernetes-clustern im vierköpfigen team, aufgeteilt in devops- und sre-arbeit",
+          "cluster-lifecycle mit talos und talosctl",
+          "deployments per gitops mit argocd und helm",
+          "aufbau und pflege von ci/cd-pipelines in gitlab ci",
+          "konfigurationsautomatisierung mit ansible, secrets mit vault",
+        ],
       },
       {
         when: "2022 — 2023",
         title: "weiterbildung zum devops engineer",
         where: "bootcamp, hamburg",
+        text: "fünf monate vollzeit: linux, bash, docker, kubernetes, ci/cd mit jenkins und gitlab, elastic stack, scrum.",
       },
       {
         when: "2018 — 2019",
@@ -118,20 +151,49 @@ const t = {
       },
       {
         when: "2012 — 2014",
-        title: "mess- und versuchsmechaniker, industrialisierung china und eu",
+        title: "industrialisierung china und eu; mess- und versuchsmechaniker",
         where: "thyssenkrupp Presta, esslingen",
       },
-    ] as Entry[],
-    education: [
       {
-        when: "2023",
-        title: "GitOps Fundamentals, GitOps at Scale",
-        where: "Codefresh",
+        when: "2007 — 2011",
+        title: "ausbildung und tätigkeit als zerspanungsmechaniker",
+        where: "Ewo Fluid Power, bissingen an der teck",
       },
+    ] as Entry[],
+    projects: {
+      nixfiles:
+        "nixos- und clan-core-konfiguration für eine rechnerflotte, von workstations und nas bis vps, remote builder und openwrt-router",
+      ssync:
+        "serverloser peer-to-peer-sync von coding-agent-sessions zwischen rechnern, mit age verschlüsselt, über iroh (rust)",
+      "pi-pack":
+        "skills, extensions und prompts für den pi coding agent, installierbar über ein home-manager-modul",
+      fencr:
+        "firecracker-microvm-sandboxes für ki-agenten auf nixos; schlüssel bleiben auf dem host, egress und mcp-tools per allow-list",
+      "harbor-labeler":
+        "kubernetes-cronjob, der laufende images in harbor markiert, damit die retention den rest aufräumt",
+    } as Record<string, string>,
+    upstream: {
+      title: "upstream",
+      text: "regelmäßig issues und pull requests an die open-source-projekte, die ich nutze.",
+    },
+    certifications: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "devops-engineer-diplom", where: "bootcamp" },
+    ] as Entry[],
+    skills: [
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
+      ["plattform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
+      ["betrieb", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
+      ["lokale ki", "llama.cpp, vllm, llm-, embedding- und decision-modelle"],
+      ["code", "nix, bash, rust, go"],
+      ["sprachen", "deutsch (muttersprache), englisch (fließend)"],
+    ],
+    education: [
       {
         when: "2014 — 2017",
         title: "allgemeine hochschulreife",
-        where: "stuttgart",
+        where: "Kolping Bildungscampus, stuttgart",
       },
       {
         when: "2007 — 2011",
@@ -139,19 +201,6 @@ const t = {
         where: "Ewo Fluid Power",
       },
     ] as Entry[],
-    projects: {
-      nixfiles: "meine rechner und mein heimnetz, deklarativ mit nixos und clan-core",
-      ssync: "peer-to-peer-sync von coding-agent-sessions zwischen rechnern",
-      "pi-pack": "skills, extensions und prompts für den pi coding agent",
-      fencr: "firecracker-microvm-sandboxes für ki-agenten auf nixos",
-    } as Record<string, string>,
-    skills: [
-      ["nix", "nix, nixos, clan-core, flake-parts, home-manager"],
-      ["plattform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
-      ["betrieb", "zfs, borg, netbird, grafana, victoriametrics"],
-      ["lokale ki", "llama.cpp, vllm, llm- und embedding-modelle"],
-      ["sprachen", "deutsch (muttersprache), englisch (fließend)"],
-    ],
     print: "drucken / als pdf speichern",
   },
 }[lang];
@@ -245,32 +294,32 @@ const langs = [
     <p>{t.profile}</p>
   </section>
 
-  {
-    (
-      [
-        ["experience", t.experience],
-        ["education", t.education],
-      ] as const
-    ).map(([key, entries]) => (
-      <section class:list={["row", { timeline: key === "experience" }]}>
-        <h2>{t.sections[key]}</h2>
-        <div>
-          {entries.map((e) => (
-            <div class="item">
-              <div class="head">
-                <h3>
-                  {e.title}
-                  {e.where && <span class="where"> · {e.where}</span>}
-                </h3>
-                <span class="when">{e.when}</span>
-              </div>
-              {e.text && <p>{e.text}</p>}
+  <section class="row timeline">
+    <h2>{t.sections.experience}</h2>
+    <div>
+      {
+        t.experience.map((e) => (
+          <div class="item">
+            <div class="head">
+              <h3>
+                {e.title}
+                {e.where && <span class="where"> · {e.where}</span>}
+              </h3>
+              <span class="when">{e.when}</span>
             </div>
-          ))}
-        </div>
-      </section>
-    ))
-  }
+            {e.text && <p>{e.text}</p>}
+            {e.points && (
+              <ul class="points">
+                {e.points.map((p) => (
+                  <li>{p}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </section>
 
   <section class="row">
     <h2>{t.sections.projects}</h2>
@@ -284,31 +333,62 @@ const langs = [
               ) : (
                 p.data.title
               )}
-              <span class="where"> · {t.projects[p.id]}</span>
             </h3>
+            <p>{t.projects[p.id]}</p>
           </div>
         ))
       }
+      <div class="item">
+        <h3>{t.upstream.title}</h3>
+        <p>{t.upstream.text}</p>
+      </div>
     </div>
   </section>
 
-  <section class="row">
-    <h2>{t.sections.skills}</h2>
-    <dl class="skills">
-      {
-        t.skills.map(([k, v]) => (
-          <>
-            <dt>{k}</dt>
-            <dd>
-              {v.split(", ").map((skill) => (
-                <span class="skill">{skill}</span>
+  {
+    (
+      [
+        ["certifications", t.certifications],
+        ["education", t.education],
+      ] as const
+    ).map(([key, entries], i) => (
+      <>
+        {i === 1 && (
+          <section class="row">
+            <h2>{t.sections.skills}</h2>
+            <dl class="skills">
+              {t.skills.map(([k, v]) => (
+                <>
+                  <dt>{k}</dt>
+                  <dd>
+                    {v.split(", ").map((skill) => (
+                      <span class="skill">{skill}</span>
+                    ))}
+                  </dd>
+                </>
               ))}
-            </dd>
-          </>
-        ))
-      }
-    </dl>
-  </section>
+            </dl>
+          </section>
+        )}
+        <section class="row">
+          <h2>{t.sections[key]}</h2>
+          <div>
+            {entries.map((e) => (
+              <div class="item">
+                <div class="head">
+                  <h3>
+                    {e.title}
+                    {e.where && <span class="where"> · {e.where}</span>}
+                  </h3>
+                  <span class="when">{e.when}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
+    ))
+  }
 </article>
 <div class="tools">
   <nav class="lang-switch" aria-label="language">
@@ -416,7 +496,7 @@ const langs = [
   }
   .row {
     display: grid;
-    grid-template-columns: 9rem 1fr;
+    grid-template-columns: 10.5rem 1fr;
     gap: 2rem;
     padding: 1.35rem 0;
     border-bottom: 1px solid var(--rule);
@@ -469,6 +549,15 @@ const langs = [
     margin: 0.1rem 0 0;
     color: var(--soft);
     font-size: 0.93rem;
+  }
+  .points {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    color: var(--soft);
+    font-size: 0.93rem;
+  }
+  .points li + li {
+    margin-top: 0.1rem;
   }
   .skills {
     display: grid;
@@ -575,7 +664,13 @@ const langs = [
     }
     /* the sheet sizes everything in rem, so scaling the root scales the cv */
     :global(html) {
-      font-size: 11px;
+      font-size: 10.5px;
+    }
+    .row {
+      padding: 0.8rem 0;
+    }
+    .top {
+      padding-bottom: 1.2rem;
     }
     .sheet {
       --ink: #1a1a1a;
