@@ -168,8 +168,7 @@ const items = searchItems({
         });
     </script>
     <script>
-      // reveal elements when they scroll in from below; leaving at the top
-      // keeps them shown, so scrolling back up never replays the fade.
+      // reveal each element once, as soon as any part of it is on screen;
       // siblings come in staggered
       const revealed = document.querySelectorAll<HTMLElement>(".reveal");
       revealed.forEach((el) => {
@@ -183,11 +182,12 @@ const items = searchItems({
         (entries) => {
           for (const e of entries) {
             const el = e.target as HTMLElement;
-            if (e.isIntersecting) el.classList.add("in");
-            else if (e.boundingClientRect.top > 0) el.classList.remove("in");
+            if (!e.isIntersecting) continue;
+            el.classList.add("in");
+            io.unobserve(el);
           }
         },
-        { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+        { threshold: 0 },
       );
       revealed.forEach((el) => io.observe(el));
     </script>
@@ -751,9 +751,8 @@ const items = searchItems({
     flex-wrap: wrap;
     margin: 0.25rem 0;
   }
-  /* fade and slide in when scrolled into view from below; the reveal script
-     toggles .in and sets a stagger delay. only hidden when js runs, so no-js
-     shows all */
+  /* fade and slide in once, when scrolled into view; the reveal script adds
+     .in and sets a stagger delay. only hidden when js runs, so no-js shows all */
   .js .reveal {
     opacity: 0;
     transform: translateY(24px);
