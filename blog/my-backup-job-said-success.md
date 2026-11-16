@@ -1,5 +1,5 @@
 ---
-title: My backup job said success. It had backed up empty directories.
+title: why borg backed up empty zfs snapshots
 description: a green borg job, an archive of empty zfs folders, and the two systemd and zfs details behind it
 date: 2026-10-11
 tags: [zfs, borg, nixos, systemd, backup]
