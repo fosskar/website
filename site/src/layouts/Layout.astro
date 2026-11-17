@@ -167,12 +167,9 @@ const settings = fosskar.website.settings;
   html {
     scroll-padding-top: 2rem;
   }
-  /* screen only: the cv sets its own root size for print. fontSize is the
-     home page size; the text-heavy pages run 16/18 of it */
+  /* fontSize only sizes the home page; the other pages keep 16px. screen
+     only, because the cv sets its own root size for print */
   @media screen {
-    html {
-      font-size: calc(var(--font-size) * 16 / 18);
-    }
     html:has(main > .home) {
       font-size: var(--font-size);
     }
