@@ -55,9 +55,20 @@ const typeAt = (path: string) => {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
+// the typing animation gives each line a share of 2s by its length
+const typingMs = 2000;
+const total = lines.reduce((n, l) => n + l.reduce((m, t) => m + t.text.length, 0), 0);
+let typed = 0;
+const typingStyle = (n: number) => {
+  const style = `--d: ${Math.round((typed / total) * typingMs)}ms; --t: ${Math.round((n / total) * typingMs)}ms; --n: ${n}`;
+  typed += n;
+  return style;
+};
+
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
   .map((tokens) => {
+    const length = tokens.reduce((n, t) => n + t.text.length, 0);
     let editable: string | undefined;
     const code = tokens
       .map((t) => {
@@ -97,11 +108,12 @@ const html = lines
         return text;
       })
       .join("");
-    if (!editable) return code + "\n";
+    const line = length ? `<span class="line" style="${typingStyle(length)}">${code}</span>` : code;
+    if (!editable) return line + "\n";
     // the error for a value shows under its line, indented like the line; it
     // follows the line break, which would otherwise leave a blank line after it
     const indent = tokens[0]?.kind === "text" ? tokens[0].text.length : 0;
-    return `${code}\n<span class="err" data-err="${editable}" style="padding-left: ${indent}ch" role="alert" hidden></span>`;
+    return `${line}\n<span class="err" data-err="${editable}" style="padding-left: ${indent}ch" role="alert" hidden></span>`;
   })
   .join("")
   .trimEnd();
@@ -113,6 +125,16 @@ const html = lines
   wide
 >
   <div class="home">
+    <script is:inline>
+      // types the file once per session; set before the first paint
+      if (
+        !sessionStorage.getItem("typed") &&
+        !matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        sessionStorage.setItem("typed", "1");
+        document.currentScript.parentElement.classList.add("typing");
+      }
+    </script>
     <pre
       class="nix"
       id="nix"
@@ -139,6 +161,12 @@ const html = lines
   }
 
   const nix = document.getElementById("nix")!;
+
+  // a click or key press skips the typing
+  const home = nix.parentElement!;
+  const done = () => home.classList.remove("typing");
+  addEventListener("pointerdown", done, { once: true });
+  addEventListener("keydown", done, { once: true });
   const restore = document.getElementById("restore")!;
   const modified = nix.querySelector<HTMLElement>(".modified")!;
   const defaults: Settings = JSON.parse(nix.dataset.defaults!);
@@ -318,6 +346,20 @@ const html = lines
   @media (max-width: 48rem) {
     .home pre.nix {
       overflow-x: auto;
+    }
+  }
+  /* each line is uncovered one character at a time; fill-mode backwards
+     hides it until its turn and drops the clip afterwards, which would
+     cut off the tooltips */
+  .home.typing .line {
+    animation: type var(--t) steps(var(--n), end) var(--d) backwards;
+  }
+  @keyframes type {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
     }
   }
   .home .c {
