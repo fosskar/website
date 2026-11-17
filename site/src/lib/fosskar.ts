@@ -2,7 +2,7 @@
 // the source, plus the helpers the home page and the 404 page share.
 // the data itself comes from src/generated/site-data.json, written by nix.
 
-export interface Token {
+interface Token {
   kind: "comment" | "string" | "number" | "attr" | "punct" | "text";
   text: string;
   /** dotted attribute path of an attr name or of the value it holds */
@@ -69,7 +69,7 @@ export type SettingName = keyof typeof settingTypes;
 export type Settings = Record<SettingName, string | number>;
 
 /** the type the way nixos describes it, e.g. `one of "dark", "light"` */
-export function describeType(name: SettingName): string {
+function describeType(name: SettingName): string {
   const t = settingTypes[name];
   return "enum" in t
     ? `one of ${t.enum.map((v) => `"${v}"`).join(", ")}`

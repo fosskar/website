@@ -1,6 +1,5 @@
 ---
-// what i do and my projects, below the about text; moved here from the old
-// home page, which is now fosskar.nix
+// what i do and my projects, below the about text
 import { getCollection } from "astro:content";
 
 interface Props {
@@ -145,7 +144,7 @@ const projects = (await getCollection("projects")).sort(
   .focus dt {
     margin-top: 1.4rem;
     color: var(--strong);
-    font: 600 0.98rem var(--mono);
+    font: 500 0.98rem var(--mono);
   }
   .focus dd {
     margin: 0.2rem 0 0;

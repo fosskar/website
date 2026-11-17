@@ -1,6 +1,7 @@
 import { defineConfig } from "astro/config";
 import wikiLinkPlugin from "remark-wiki-link";
 import sitemap from "@astrojs/sitemap";
+import { unified } from "@astrojs/markdown-remark";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import {
@@ -23,7 +24,10 @@ validateWikiLinks(
 
 export default defineConfig({
   site: "https://bliki.fosskar.eu",
-  integrations: [sitemap()],
+  // the cv pages are noindex; crawlers must still be allowed to read that
+  integrations: [
+    sitemap({ filter: (page) => !new URL(page).pathname.startsWith("/cv/") }),
+  ],
   // the default html compression drops the line break between text and a
   // tag that starts the next source line, gluing words to links
   compressHTML: false,
@@ -32,20 +36,27 @@ export default defineConfig({
   cacheDir: "./.cache/astro",
   vite: { cacheDir: "./.cache/vite" },
   markdown: {
-    remarkPlugins: [
-      [
-        wikiLinkPlugin,
-        {
-          aliasDivider: "|",
-          pageResolver: (name: string) => [resolveWikiLink(name, knownSlugs)],
-          hrefTemplate: (permalink: string) => `/wiki/${permalink}/`,
-          wikiLinkClassName: "wikilink",
-          newClassName: "wikilink",
-        },
+    // remark plugins need the unified processor; astro's default processor
+    // (satteri) doesn't run them
+    processor: unified({
+      remarkPlugins: [
+        [
+          wikiLinkPlugin,
+          {
+            aliasDivider: "|",
+            pageResolver: (name: string) => [resolveWikiLink(name, knownSlugs)],
+            hrefTemplate: (permalink: string) => `/wiki/${permalink}/`,
+            wikiLinkClassName: "wikilink",
+            newClassName: "wikilink",
+          },
+        ],
       ],
-    ],
+    }),
     shikiConfig: {
-      themes: { light: "github-light", dark: "github-dark" },
+      themes: {
+        light: "github-light-high-contrast",
+        dark: "github-dark-high-contrast",
+      },
     },
   },
 });

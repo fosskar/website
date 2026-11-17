@@ -2,7 +2,7 @@
 // and a post's url is its id minus the .md extension under /blog/.
 // home, blog index, blog route, and rss all consume this interface.
 
-export interface PostLike {
+interface PostLike {
   id: string;
   data: { draft: boolean; date: Date };
 }

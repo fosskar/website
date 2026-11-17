@@ -1,9 +1,10 @@
-// site search (header ⌘k and the home hero): one flat list, rendered once
-// into every page and filtered client-side.
+// site search (the ⌘k dialog): one flat list, rendered once into every page
+// and filtered client-side.
+import { linkFor } from "./fosskar";
 import { noteHref, slugOf } from "./notes";
 import { postHref, postSlug } from "./posts";
 
-export interface SearchItem {
+interface SearchItem {
   group: string;
   title: string;
   hint: string;
@@ -23,21 +24,30 @@ interface Sources {
   /** already published (drafts removed, newest first) */
   posts: { id: string; data: { title: string } }[];
   notes: { id: string; data: { title: string } }[];
+  /** contact and me.code from fosskar.nix */
+  contact: { mail: string; matrix: string };
+  code: string;
 }
 
-export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
+export function searchItems({
+  projects,
+  posts,
+  notes,
+  contact,
+  code,
+}: Sources): SearchItem[] {
   return [
     {
       group: "contact",
       title: "mail",
-      hint: "simon@nx3.eu",
-      href: "mailto:simon@nx3.eu",
+      hint: contact.mail,
+      href: linkFor(contact.mail)!,
     },
     {
       group: "contact",
       title: "matrix",
-      hint: "@fosskar:fosskar.de",
-      href: "https://matrix.to/#/@fosskar:fosskar.de",
+      hint: contact.matrix,
+      href: linkFor(contact.matrix)!,
     },
     { group: "contact", title: "cv", hint: "printable", href: "/cv/" },
     {
@@ -49,14 +59,8 @@ export function searchItems({ projects, posts, notes }: Sources): SearchItem[] {
     {
       group: "contact",
       title: "github",
-      hint: "fosskar",
-      href: "https://github.com/fosskar",
-    },
-    {
-      group: "pages",
-      title: "what i do",
-      hint: "what i love and what i do",
-      href: "/about/",
+      hint: new URL(code).pathname.slice(1),
+      href: code,
     },
     { group: "pages", title: "about", hint: "who i am", href: "/about/" },
     ...[...projects]

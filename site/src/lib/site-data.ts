@@ -8,15 +8,15 @@ import {
   type Settings,
 } from "./fosskar";
 
-export interface Fosskar {
+interface Fosskar {
   name: string;
   role: string;
   location: string;
   likes: string[];
-  me: Record<string, string>;
+  me: { about: string; cv: string; code: string };
   projects: Record<string, string>;
   writing: Record<string, string>;
-  contact: Record<string, string>;
+  contact: { mail: string; matrix: string };
   website: { settings: Settings };
 }
 

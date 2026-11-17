@@ -13,9 +13,7 @@ const source = readFileSync(resolve(process.cwd(), "../fosskar.nix"), "utf8").tr
 const lines = tokenize(source);
 
 const posts = published(await getCollection("blog"));
-const notes = (await getCollection("wiki")).sort(
-  (a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0),
-);
+const notes = await getCollection("wiki");
 const sitePaths = new Set(Object.values(pageNames({ posts, notes })));
 // a project's hint is its description from projects/
 const projectInfo = new Map(
@@ -106,6 +104,7 @@ const html = lines
   wide
 >
   <div class="home">
+    <h1 class="visually-hidden">{fosskar.name} (fosskar), {fosskar.role}</h1>
     <div class="fade top" aria-hidden="true"></div>
     <div class="fade bottom" aria-hidden="true"></div>
     <script is:inline>
@@ -123,7 +122,6 @@ const html = lines
       id="nix"
       data-defaults={JSON.stringify(fosskar.website.settings)}><code set:html={html} /></pre>
   </div>
-</Layout>
 
 <script>
   import {
@@ -149,8 +147,8 @@ const html = lines
     fadeBottom!.classList.toggle("on", scrollY < end - 1);
   };
   addEventListener("scroll", edges, { passive: true });
-  addEventListener("resize", edges);
-  edges();
+  // the page height also changes without a scroll: font size, web fonts
+  new ResizeObserver(edges).observe(document.body);
 
   // a click or key press skips the typing
   const home = nix.parentElement!;
@@ -160,19 +158,20 @@ const html = lines
   const restore = document.getElementById("restore")!;
   const modified = nix.querySelector<HTMLElement>(".modified")!;
   const defaults: Settings = JSON.parse(nix.dataset.defaults!);
-  let current: Settings = {
-    ...defaults,
-    ...JSON.parse(localStorage.getItem("settings") ?? "{}"),
-  };
+  // stored values come from older builds too; keep the ones that still type-check
+  const stored = JSON.parse(localStorage.getItem("settings") ?? "{}");
+  let current: Settings = { ...defaults };
+  for (const name of Object.keys(settingTypes) as SettingName[])
+    if (name in stored && !checkSetting(name, stored[name])) current[name] = stored[name];
 
-  function showError(key: string, message?: (string | Node)[]) {
+  function showError(key: string, message?: string) {
     const el = nix.querySelector<HTMLElement>(`[data-err="${key}"]`)!;
     el.hidden = !message;
     const red = Object.assign(document.createElement("span"), {
       className: "red",
       textContent: "error:",
     });
-    el.replaceChildren(...(message ? [red, " ", ...message] : []));
+    el.replaceChildren(...(message ? [red, " ", message] : []));
   }
 
   // only values that differ from fosskar.nix are stored
@@ -223,7 +222,7 @@ const html = lines
       const raw = el.textContent!.trim();
       const value = /^-?\d+$/.test(raw) ? Number(raw) : raw;
       const error = checkSetting(name, value);
-      showError(el.dataset.key!, error ? [error] : undefined);
+      showError(el.dataset.key!, error);
       if (error) return;
       current = { ...current, [name]: value };
       save();
@@ -260,6 +259,7 @@ const html = lines
     save();
   });
 </script>
+</Layout>
 
 <style is:global>
   /* global: the expression's html is built as a string, which scoped styles
@@ -270,6 +270,9 @@ const html = lines
     display: flex;
     justify-content: center;
     padding-top: 4rem;
+    /* the hints reach past the window edge; they mustn't add a scrollbar */
+    position: relative;
+    overflow-x: clip;
   }
   .home {
     min-width: 0;
@@ -307,15 +310,15 @@ const html = lines
     border-radius: 0;
     font: inherit;
   }
-  /* sideways scrolling only where lines don't fit; it would clip the tooltips */
+  /* sideways scrolling only where lines don't fit; elsewhere the hints
+     would count towards the scroll width */
   @media (max-width: 48rem) {
     .home pre.nix {
       overflow-x: auto;
     }
   }
   /* each line is uncovered one character at a time; fill-mode backwards
-     hides it until its turn and drops the clip afterwards, which would
-     cut off the tooltips */
+     hides it until its turn and drops the clip afterwards */
   .home.typing .line {
     animation: type var(--t) steps(var(--n), end) var(--d) backwards;
   }
@@ -398,10 +401,7 @@ const html = lines
     color: var(--text);
   }
   .home .red {
-    color: #e65b53;
-  }
-  .home .err a {
-    color: var(--accent);
+    color: var(--red);
   }
   .home .modified {
     color: var(--accent);

@@ -16,10 +16,19 @@ describe("searchItems", () => {
     ],
     posts: [post("hello.md", "hello world")],
     notes: [note("nixos/tpm.md", "tpm unlock")],
+    contact: { mail: "a@b.eu", matrix: "@a:b.de" },
+    code: "https://github.com/a",
   });
 
-  it("lists contact entries first", () => {
+  it("lists contact entries first, linked from fosskar.nix", () => {
     expect(items[0].group).toBe("contact");
+    expect(items.find((i) => i.title === "mail")?.href).toBe("mailto:a@b.eu");
+    expect(items.find((i) => i.title === "matrix")?.href).toBe(
+      "https://matrix.to/#/@a:b.de",
+    );
+    expect(items.find((i) => i.title === "github")?.href).toBe(
+      "https://github.com/a",
+    );
   });
 
   it("orders projects by order and links them to their repo", () => {

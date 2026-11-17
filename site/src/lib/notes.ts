@@ -53,7 +53,7 @@ export function assertUniqueSlugs(ids: Iterable<string>): void {
   }
 }
 
-export interface NoteLike {
+interface NoteLike {
   id: string;
   data: { title: string };
 }

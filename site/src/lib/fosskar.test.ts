@@ -9,7 +9,7 @@ import {
 
 const src = `# fosskar.nix
 {
-  lang = "en";
+  role = "sre";
   likes = [
     "nix"
   ];
@@ -35,7 +35,7 @@ describe("tokenize", () => {
   it("marks comments, attribute names and strings", () => {
     expect(flat.find((t) => t.kind === "comment")?.text).toBe("# fosskar.nix");
     expect(flat.filter((t) => t.kind === "attr").map((t) => t.text)).toEqual([
-      "lang",
+      "role",
       "likes",
       "contact",
       "mail",
@@ -52,7 +52,7 @@ describe("tokenize", () => {
     expect(attr("mail")?.path).toBe("contact.mail");
     expect(str('"simon@nx3.eu"')?.path).toBe("contact.mail");
     expect(str('"nix"')?.path).toBe("likes");
-    expect(str('"en"')?.path).toBe("lang");
+    expect(str('"sre"')?.path).toBe("role");
   });
 
   it("follows dotted attribute names into the set they open", () => {

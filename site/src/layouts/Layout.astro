@@ -1,7 +1,6 @@
 ---
 import "@fontsource-variable/inter";
 import "@fontsource/commit-mono/500.css";
-import "@fontsource/commit-mono/600.css";
 import Search from "../components/Search.astro";
 import { getCollection } from "astro:content";
 import { published } from "../lib/posts";
@@ -40,6 +39,8 @@ const items = searchItems({
   projects: await getCollection("projects"),
   posts: published(await getCollection("blog")),
   notes: await getCollection("wiki"),
+  contact: fosskar.contact,
+  code: fosskar.me.code,
 });
 
 ---
@@ -67,15 +68,23 @@ const items = searchItems({
         root.dataset.font = s.font;
         root.style.setProperty("--font-size", `${s.fontSize}px`);
       };
-      const saved = localStorage.getItem("settings");
-      if (saved) applySettings({ ...settings, ...JSON.parse(saved) });
+      // localStorage is outside the build: older builds stored other keys,
+      // and the value may not parse
+      let saved = {};
+      try {
+        saved = JSON.parse(localStorage.getItem("settings") ?? "{}");
+      } catch {
+        localStorage.removeItem("settings");
+      }
+      const known = Object.keys(settings).filter((k) => k in saved);
+      applySettings({ ...settings, ...Object.fromEntries(known.map((k) => [k, saved[k]])) });
     </script>
   </head>
   <body>
     <a class="skip" href="#content">skip to content</a>
     {
       segments.length > 0 && (
-        <header class="path">
+        <header class="crumbs">
           <div class="bar">
             <nav aria-label="breadcrumb" set:html={crumbs} />
             <button class="search-btn" type="button" data-search-open>
@@ -139,13 +148,14 @@ const items = searchItems({
     --text: #cfcfcf;
     --strong: #f0f0f0;
     --muted: #9d9d9d;
-    --dim: #6a6a6a;
+    --dim: #8a8a8a;
     --accent: #6fc29b;
     --accent-bright: #8fd3b3;
     --string: #6fc29b;
     --path: #f09082;
     --ext: #4d9abf;
     --set: #f1be58;
+    --red: #e65b53;
     --mono: "Commit Mono", ui-monospace, monospace;
     color-scheme: dark;
     font-family: "Inter Variable", system-ui, sans-serif;
@@ -157,13 +167,14 @@ const items = searchItems({
     --text: #262626;
     --strong: #0e0e0e;
     --muted: #616161;
-    --dim: #707070;
+    --dim: #6b6b6b;
     --accent: #1f7855;
     --accent-bright: #165c41;
     --string: #1f7855;
     --path: #a85044;
     --ext: #207296;
     --set: #8a6403;
+    --red: #c4392f;
     color-scheme: light;
   }
   :root[data-font="commit mono"] {
@@ -181,6 +192,14 @@ const items = searchItems({
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .skip {
     position: absolute;
@@ -224,24 +243,24 @@ const items = searchItems({
   }
 
   /* ---- path line on subpages ---- */
-  .path {
+  .crumbs {
     font: 0.9rem var(--mono);
   }
-  .path .bar {
+  .crumbs .bar {
     padding-block: 1.6rem 0;
   }
-  .path nav {
+  .crumbs nav {
     color: var(--dim);
     overflow-wrap: anywhere;
   }
-  .path a {
+  .crumbs a {
     color: var(--muted);
     text-decoration: none;
   }
-  .path a:hover {
+  .crumbs a:hover {
     color: var(--accent);
   }
-  .path [aria-current] {
+  .crumbs [aria-current] {
     color: var(--strong);
   }
   .search-btn {
@@ -371,6 +390,11 @@ const items = searchItems({
     padding: 1rem;
     overflow-x: auto;
   }
+  /* shiki's light theme is made for white; the tinted block drops its
+     comments below 4.5:1 */
+  :root[data-theme="light"] .astro-code {
+    background: var(--bg) !important;
+  }
   pre code {
     background: none;
     padding: 0;
@@ -432,14 +456,6 @@ const items = searchItems({
   a.card:hover {
     border-color: var(--dim);
   }
-  .card h2 {
-    margin: 0 0 0.25rem;
-    font-size: 1.2rem;
-  }
-  .card > .desc {
-    margin: 0 0 0.5rem;
-    font-size: 0.9rem;
-  }
   .stack {
     display: flex;
     flex-direction: column;
@@ -455,11 +471,7 @@ const items = searchItems({
     border-radius: 4px;
     border: 1px solid var(--border);
     color: var(--muted);
-    text-decoration: none;
     white-space: nowrap;
-  }
-  .chip:hover {
-    color: var(--accent);
   }
   .meta {
     color: var(--muted);
@@ -493,11 +505,16 @@ const items = searchItems({
       --text: #262626;
       --strong: #0e0e0e;
       --muted: #616161;
-      --dim: #8a8a8a;
-      --accent: #0b6e5b;
-      --string: #1d6b5a;
+      --dim: #6b6b6b;
+      --accent: #1f7855;
+      --accent-bright: #165c41;
+      --string: #1f7855;
+      --path: #a85044;
+      --ext: #207296;
+      --set: #8a6403;
+      --red: #c4392f;
     }
-    .path,
+    .crumbs,
     footer,
     #search-dialog {
       display: none !important;
