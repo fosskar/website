@@ -37,12 +37,8 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 // the typing animation gives each line a share of 2s by its length
 const typingMs = 2000;
 const total = lines.reduce((n, l) => n + l.reduce((m, t) => m + t.text.length, 0), 0);
-let typed = 0;
-const typingStyle = (n: number) => {
-  const style = `--d: ${Math.round((typed / total) * typingMs)}ms; --t: ${Math.round((n / total) * typingMs)}ms; --n: ${n}`;
-  typed += n;
-  return style;
-};
+const typingStyle = (n: number) =>
+  `--t: ${Math.round((n / total) * typingMs)}ms; --n: ${n}`;
 
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
@@ -172,11 +168,36 @@ const html = lines
     }),
   );
 
-  // a click or key press skips the typing
+  // typing: lines type in order as they come into view, the first screen
+  // right away, the rest when scrolled to. a click or key press skips it
   const home = nix.parentElement!;
-  const done = () => home.classList.remove("typing");
-  addEventListener("pointerdown", done, { once: true });
-  addEventListener("keydown", done, { once: true });
+  if (home.classList.contains("typing")) {
+    let next = performance.now();
+    const seen = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const line = e.target as HTMLElement;
+        seen.unobserve(line);
+        const now = performance.now();
+        next = Math.max(next, now);
+        line.style.setProperty("--d", `${next - now}ms`);
+        next += parseFloat(line.style.getPropertyValue("--t"));
+        line.classList.add("go", "typed");
+      }
+    });
+    nix.querySelectorAll(".line").forEach((l) => seen.observe(l));
+    // dropping the finished animation drops its clip; chromium can hold the
+    // last steps() frame one character short
+    nix.addEventListener("animationend", (e) =>
+      (e.target as HTMLElement).classList.remove("go"),
+    );
+    const done = () => {
+      home.classList.remove("typing");
+      seen.disconnect();
+    };
+    addEventListener("pointerdown", done, { once: true });
+    addEventListener("keydown", done, { once: true });
+  }
   const restore = document.getElementById("restore")!;
   const modified = nix.querySelector<HTMLElement>(".modified")!;
   const defaults: Settings = JSON.parse(nix.dataset.defaults!);
@@ -348,10 +369,14 @@ const html = lines
       overflow-x: auto;
     }
   }
-  /* each line is uncovered one character at a time; fill-mode backwards
-     hides it until its turn and drops the clip afterwards */
-  .home.typing .line {
-    animation: type var(--t) steps(var(--n), end) var(--d) backwards;
+  /* each line stays hidden until the script starts it, then is uncovered
+     one character at a time. visibility, not a clip: a fully clipped line
+     never counts as in view for the IntersectionObserver */
+  .home.typing .line:not(.typed) {
+    visibility: hidden;
+  }
+  .home.typing .line.go {
+    animation: type var(--t) steps(var(--n), end) var(--d) both;
   }
   @keyframes type {
     from {
