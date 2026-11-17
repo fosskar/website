@@ -23,7 +23,7 @@ validateWikiLinks(
 );
 
 export default defineConfig({
-  site: "https://bliki.fosskar.eu",
+  site: "https://simon.fosskar.eu",
   // the cv pages are noindex; crawlers must still be allowed to read that
   integrations: [
     sitemap({ filter: (page) => !new URL(page).pathname.startsWith("/cv/") }),

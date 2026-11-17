@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Personal website published at https://bliki.fosskar.eu: the home page is `fosskar.nix`, plus a blog, a wiki, an about page and a cv. Markdown content is written in an Obsidian vault and rendered by a minimal Astro static site, which Nix builds reproducibly. `CONTEXT.md` is the domain glossary (note, section, wikilink, post, project). Use its vocabulary in code and prose.
+Personal website published at https://simon.fosskar.eu: the home page is `fosskar.nix`, plus a blog, a wiki, an about page and a cv. Markdown content is written in an Obsidian vault and rendered by a minimal Astro static site, which Nix builds reproducibly. `CONTEXT.md` is the domain glossary (note, section, wikilink, post, project). Use its vocabulary in code and prose.
 
 ## Architecture & Data Flow
 
