@@ -5,7 +5,6 @@ import {
   settingTypes,
   suggest,
   tokenize,
-  typeOf,
 } from "./fosskar";
 
 const src = `# fosskar.nix
@@ -84,14 +83,6 @@ describe("linkFor", () => {
   it("leaves plain words alone", () => {
     expect(linkFor("hamburg")).toBeUndefined();
     expect(linkFor("devops engineer / sre")).toBeUndefined();
-  });
-});
-
-describe("typeOf", () => {
-  it("names values the way nix does", () => {
-    expect(typeOf("simon")).toBe("string");
-    expect(typeOf(["a", "b"])).toBe("list of string, 2 elements");
-    expect(typeOf({ blog: "/blog/" })).toBe("attrset, 1 attribute");
   });
 });
 

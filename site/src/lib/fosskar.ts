@@ -104,17 +104,6 @@ export function linkFor(value: string): string | undefined {
   return undefined;
 }
 
-/** a value's type as nix would describe it */
-export function typeOf(value: unknown): string {
-  if (typeof value === "string") return "string";
-  if (Array.isArray(value)) {
-    const n = value.length;
-    return `list of string, ${n} element${n === 1 ? "" : "s"}`;
-  }
-  const n = Object.keys(value as object).length;
-  return `attrset, ${n} attribute${n === 1 ? "" : "s"}`;
-}
-
 function distance(a: string, b: string): number {
   const row = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {

@@ -26,7 +26,7 @@ Domain logic is centralized in `site/src/lib/`:
 
 - `notes.ts`: note identity and wikilinks. Contains `slugOf`/`noteHref` (flat routing), `noteSlugIndex()` (basename → slug, Obsidian shortest-path, unique vault-wide), `resolveWikiLink()`, `scanWikiLinks()` (skips code fences), `validateWikiLinks()`, `assertUniqueSlugs()` (collision throws naming both IDs), and the `SECTIONS` record (section descriptions + display order, so vault folders **don't** need a per-directory `index.md`)
 - `posts.ts`: publication rules. `published()` filters `draft: true` and sorts newest-first. The blog index, blog routes, RSS, search and the home page hover use it
-- `fosskar.ts`: `tokenize()` for showing `fosskar.nix` on the home page, `linkFor()` (paths, urls, mail and matrix ids to hrefs), `typeOf()` for the hover info, and `suggest()` for the 404 page
+- `fosskar.ts`: `tokenize()` for showing `fosskar.nix` on the home page, `linkFor()` (paths, urls, mail and matrix ids to hrefs), `settingTypes` and `checkSetting()` for `website.settings`, and `suggest()` with `didYouMean()` for the 404 page
 - `site-data.ts`: typed access to the generated `site-data.json` and `SITE_STORE_PATH`
 - `search.ts`: the item list behind the search field and the `⌘K` dialog
 
