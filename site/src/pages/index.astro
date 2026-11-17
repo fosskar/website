@@ -285,7 +285,8 @@ const html = lines
     position: fixed;
     left: 0;
     right: 0;
-    height: 5rem;
+    /* taller than the blank line between sets, so it always covers text */
+    height: clamp(7rem, 22vh, 12rem);
     z-index: 1;
     pointer-events: none;
     opacity: 0;
@@ -296,11 +297,11 @@ const html = lines
   }
   .home .fade.top {
     top: 0;
-    background: linear-gradient(var(--bg), transparent);
+    background: linear-gradient(var(--bg) 10%, transparent);
   }
   .home .fade.bottom {
     bottom: 0;
-    background: linear-gradient(transparent, var(--bg));
+    background: linear-gradient(transparent, var(--bg) 90%);
   }
   .home pre.nix {
     margin: 0;
