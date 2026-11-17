@@ -10,6 +10,8 @@
               (lib.fileset.maybeMissing ../site/node_modules)
               (lib.fileset.maybeMissing ../site/dist)
               (lib.fileset.maybeMissing ../site/src/generated)
+              (lib.fileset.maybeMissing ../site/.cache)
+              (lib.fileset.maybeMissing ../site/.astro)
             ]
           ))
           ../blog
