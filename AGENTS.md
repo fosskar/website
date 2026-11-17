@@ -10,7 +10,7 @@ Content is stored at the **repo root**, outside the app. `site/src/content.confi
 
 - `wiki/` → notes, routed **flat** as `/wiki/<basename>/` regardless of directory depth (vault-root `wiki/index.md` is the Obsidian home page, excluded via `!index.md`)
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
-- `projects/` → listed on the about pages (ordered by `order`). `/cv/` shows the ids in its `projects` list. `projects` in `fosskar.nix` lists the same repos as flake references (`github:fosskar/<repo>`) and is kept by hand; the home page takes each project's hint from its `description`
+- `projects/` → listed on the about pages (ordered by `order`). `/cv/` shows the ids in its `projects` list. `projects` in `fosskar.nix` lists the same repo names and maps them to flake references (`github:fosskar/<repo>`); it is kept by hand. List entries on the home page link to the value nix evaluates them to; the home page takes each project's hint from its `description`
 
 `fosskar.nix` at the repo root is the site's own data: name, role, links and the `website.settings` defaults. The types of `website.settings` live in `settingTypes` in `site/src/lib/fosskar.ts`. `site-data.ts` fails the build on a value that doesn't match its type. `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json`. The build copies that file to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, formatted by nixfmt like every other nix file.
 

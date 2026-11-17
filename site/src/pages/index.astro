@@ -40,6 +40,19 @@ const total = lines.reduce((n, l) => n + l.reduce((m, t) => m + t.text.length, 0
 const typingStyle = (n: number) =>
   `--t: ${Math.round((n / total) * typingMs)}ms; --n: ${n}`;
 
+// a list entry links to what nix evaluates it to, not to its text: the
+// projects list holds "nixfiles", nix makes it "github:fosskar/nixfiles"
+const listPos = new Map<string, number>();
+const evaluated = (path: string, literal: string) => {
+  const list = path
+    .split(".")
+    .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], fosskar);
+  if (!Array.isArray(list) || literal.includes("${")) return literal;
+  const i = listPos.get(path) ?? 0;
+  listPos.set(path, i + 1);
+  return String(list[i]);
+};
+
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
   .map((tokens) => {
@@ -72,7 +85,7 @@ const html = lines
         }
         if (t.kind === "string") {
           const value = t.text.slice(1, -1);
-          const href = linkFor(value);
+          const href = linkFor(t.path ? evaluated(t.path, value) : value);
           if (href && sitePaths.has(href)) {
             hint = `open ${value}`;
             return `<a class="path" href="${esc(href)}">${text}</a>`;

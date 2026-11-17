@@ -23,14 +23,14 @@
   };
 
   # side projects
-  projects = {
-    nixfiles = "github:fosskar/nixfiles";
-    ssync = "github:fosskar/ssync";
-    pi-pack = "github:fosskar/pi-pack";
-    fencr = "github:fosskar/fencr";
-    harbor-labeler = "github:fosskar/harbor-labeler";
-    gitops = "github:fosskar/gitops";
-  };
+  projects = map (repo: "github:fosskar/${repo}") [
+    "nixfiles"
+    "ssync"
+    "pi-pack"
+    "fencr"
+    "harbor-labeler"
+    "gitops"
+  ];
 
   # longer posts and short notes on problems i solved
   writing = {

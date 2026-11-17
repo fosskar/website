@@ -14,7 +14,7 @@ interface Fosskar {
   location: string;
   likes: string[];
   me: { about: string; cv: string; code: { github: string; radicle: string } };
-  projects: Record<string, string>;
+  projects: string[];
   writing: Record<string, string>;
   contact: { mail: string; matrix: string };
   website: { settings: Record<string, unknown> };
