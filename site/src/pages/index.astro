@@ -114,7 +114,7 @@ const html = lines
   <div class="home">
     <h1 class="visually-hidden">{fosskar.name} (fosskar), {fosskar.role}</h1>
     <div class="fade top" aria-hidden="true"></div>
-    <div class="fade bottom" aria-hidden="true"></div>
+    <div class="fade bottom on" aria-hidden="true"></div>
     <script is:inline>
       // types the file once per session; set before the first paint
       if (
@@ -157,6 +157,13 @@ const html = lines
   addEventListener("scroll", edges, { passive: true });
   // the page height also changes without a scroll: font size, web fonts
   new ResizeObserver(edges).observe(document.body);
+  // the first state comes without a transition, so a reload doesn't flicker
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      fadeTop!.classList.add("ready");
+      fadeBottom!.classList.add("ready");
+    }),
+  );
 
   // a click or key press skips the typing
   const home = nix.parentElement!;
@@ -300,6 +307,8 @@ const html = lines
     z-index: 1;
     pointer-events: none;
     opacity: 0;
+  }
+  .home .fade.ready {
     transition: opacity 0.2s;
   }
   .home .fade.on {
