@@ -39,7 +39,6 @@ const settings = fosskar.website.settings;
 <html
   lang={lang}
   data-theme={settings.colorScheme}
-  data-font={settings.font}
   style={`--font-size: ${settings.fontSize}px`}
 >
   <head>
@@ -57,7 +56,6 @@ const settings = fosskar.website.settings;
       const root = document.documentElement;
       window.applySettings = (s) => {
         root.dataset.theme = s.colorScheme;
-        root.dataset.font = s.font;
         root.style.setProperty("--font-size", `${s.fontSize}px`);
       };
       // localStorage is outside the build: older builds stored other keys,
@@ -163,9 +161,6 @@ const settings = fosskar.website.settings;
     --set: #8a6403;
     --red: #c4392f;
     color-scheme: light;
-  }
-  :root[data-font="commit mono"] {
-    font-family: var(--mono);
   }
   html {
     scroll-padding-top: 2rem;

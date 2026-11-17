@@ -47,7 +47,6 @@
   # click a value to change it
   website.settings = {
     colorScheme = "dark";
-    font = "inter";
     fontSize = 18;
   };
 }

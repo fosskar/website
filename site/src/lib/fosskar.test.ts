@@ -116,10 +116,6 @@ describe("checkSetting", () => {
   });
 
   it("has a type for every setting", () => {
-    expect(Object.keys(settingTypes)).toEqual([
-      "colorScheme",
-      "font",
-      "fontSize",
-    ]);
+    expect(Object.keys(settingTypes)).toEqual(["colorScheme", "fontSize"]);
   });
 });

@@ -61,7 +61,6 @@ export function tokenize(src: string): Token[][] {
 /** website.settings: the values a visitor can change, typed like nixos options */
 export const settingTypes = {
   colorScheme: { enum: ["dark", "light"] },
-  font: { enum: ["inter", "commit mono"] },
   fontSize: { min: 12, max: 24 },
 } as const;
 
