@@ -24,10 +24,9 @@ interface Sources {
   /** already published (drafts removed, newest first) */
   posts: { id: string; data: { title: string } }[];
   notes: { id: string; data: { title: string } }[];
-  /** contact, me.code and me.radicle from fosskar.nix */
+  /** contact and me.code from fosskar.nix */
   contact: { mail: string; matrix: string };
-  code: string;
-  radicle: string;
+  code: { github: string; radicle: string };
 }
 
 export function searchItems({
@@ -36,7 +35,6 @@ export function searchItems({
   notes,
   contact,
   code,
-  radicle,
 }: Sources): SearchItem[] {
   return [
     {
@@ -61,14 +59,14 @@ export function searchItems({
     {
       group: "contact",
       title: "github",
-      hint: new URL(code).pathname.slice(1),
-      href: code,
+      hint: new URL(code.github).pathname.slice(1),
+      href: code.github,
     },
     {
       group: "contact",
       title: "radicle",
-      hint: new URL(radicle).host,
-      href: radicle,
+      hint: new URL(code.radicle).host,
+      href: code.radicle,
     },
     { group: "pages", title: "about", hint: "who i am", href: "/about/" },
     ...[...projects]

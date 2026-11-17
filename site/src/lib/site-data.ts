@@ -13,7 +13,7 @@ interface Fosskar {
   role: string;
   location: string;
   likes: string[];
-  me: { about: string; cv: string; code: string; radicle: string };
+  me: { about: string; cv: string; code: { github: string; radicle: string } };
   projects: Record<string, string>;
   writing: Record<string, string>;
   contact: { mail: string; matrix: string };

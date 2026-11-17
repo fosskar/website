@@ -16,8 +16,10 @@
   me = {
     about = "./about/";
     cv = "./cv/";
-    code = "https://github.com/fosskar";
-    radicle = "https://radicle.fosskar.eu";
+    code = {
+      github = "https://github.com/fosskar";
+      radicle = "https://radicle.fosskar.eu";
+    };
   };
 
   # side projects

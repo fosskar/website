@@ -17,8 +17,7 @@ describe("searchItems", () => {
     posts: [post("hello.md", "hello world")],
     notes: [note("nixos/tpm.md", "tpm unlock")],
     contact: { mail: "a@b.eu", matrix: "@a:b.de" },
-    code: "https://github.com/a",
-    radicle: "https://radicle.a.eu",
+    code: { github: "https://github.com/a", radicle: "https://radicle.a.eu" },
   });
 
   it("lists contact entries first, linked from fosskar.nix", () => {
