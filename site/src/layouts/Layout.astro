@@ -145,21 +145,23 @@ const settings = fosskar.website.settings;
     color-scheme: dark;
     font-family: "Inter Variable", system-ui, sans-serif;
   }
+  /* pi-jade light: grey, not white; cards and code sit lighter than the
+     page so the colours keep 4.5:1 on both */
   :root[data-theme="light"] {
-    --bg: #fafafa;
-    --bg-alt: #f1f1f1;
-    --border: #e0e0e0;
-    --text: #262626;
+    --bg: #ebebeb;
+    --bg-alt: #f5f5f5;
+    --border: #d4d4d4;
+    --text: #222222;
     --strong: #0e0e0e;
-    --muted: #616161;
-    --dim: #6b6b6b;
+    --muted: #5b5b5b;
+    --dim: #666666;
     --accent: #1f7855;
     --accent-bright: #165c41;
     --string: #1f7855;
     --path: #a85044;
     --ext: #207296;
     --set: #8a6403;
-    --red: #c4392f;
+    --red: #b8352c;
     color-scheme: light;
   }
   html {
@@ -379,10 +381,10 @@ const settings = fosskar.website.settings;
     padding: 1rem;
     overflow-x: auto;
   }
-  /* shiki's light theme is made for white; the tinted block drops its
+  /* shiki's light theme is made for white; a darker block drops its
      comments below 4.5:1 */
   :root[data-theme="light"] .astro-code {
-    background: var(--bg) !important;
+    background: var(--bg-alt) !important;
   }
   pre code {
     background: none;
