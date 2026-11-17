@@ -8,7 +8,10 @@ const posts = published(await getCollection("blog"));
 ---
 
 <Layout title="blog — fosskar" description="posts by fosskar">
-  <h1>blog</h1>
+  <header class="head">
+    <h1>blog</h1>
+    <a class="rss" href="/rss.xml">rss</a>
+  </header>
   {posts.length === 0 && <p class="muted">nothing here yet.</p>}
   <div class="stack">
     {
@@ -25,6 +28,15 @@ const posts = published(await getCollection("blog"));
 </Layout>
 
 <style>
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .rss {
+    font: 0.85rem var(--mono);
+  }
   .stack {
     margin-top: 1.5rem;
   }

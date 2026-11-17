@@ -274,9 +274,11 @@ const html = lines
     position: relative;
     overflow-x: clip;
   }
+  /* a fixed column, centred: the code sits left in it, and long hints
+     don't pull the code off-centre */
   .home {
     min-width: 0;
-    max-width: 100%;
+    width: min(100%, 84ch);
     font: 0.95rem/1.85 var(--mono);
     color: var(--muted);
   }
