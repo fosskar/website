@@ -106,6 +106,8 @@ const html = lines
   wide
 >
   <div class="home">
+    <div class="fade top" aria-hidden="true"></div>
+    <div class="fade bottom" aria-hidden="true"></div>
     <script is:inline>
       // types the file once per session; set before the first paint
       if (
@@ -138,6 +140,17 @@ const html = lines
   }
 
   const nix = document.getElementById("nix")!;
+
+  // fade the window edges while the page continues past them
+  const [fadeTop, fadeBottom] = document.querySelectorAll<HTMLElement>(".fade");
+  const edges = () => {
+    const end = document.documentElement.scrollHeight - innerHeight;
+    fadeTop!.classList.toggle("on", scrollY > 1);
+    fadeBottom!.classList.toggle("on", scrollY < end - 1);
+  };
+  addEventListener("scroll", edges, { passive: true });
+  addEventListener("resize", edges);
+  edges();
 
   // a click or key press skips the typing
   const home = nix.parentElement!;
@@ -265,6 +278,27 @@ const html = lines
     color: var(--muted);
   }
 
+  .home .fade {
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 5rem;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .home .fade.on {
+    opacity: 1;
+  }
+  .home .fade.top {
+    top: 0;
+    background: linear-gradient(var(--bg), transparent);
+  }
+  .home .fade.bottom {
+    bottom: 0;
+    background: linear-gradient(transparent, var(--bg));
+  }
   .home pre.nix {
     margin: 0;
     padding: 0 0 1rem;
