@@ -24,7 +24,7 @@ const segments = Astro.url.pathname.split("/").filter(Boolean);
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 // built as a string so template whitespace can't split the path
 const crumbs = [
-  `<a href="/" translate="no">~/fosskar</a>`,
+  `<a href="/" translate="no"><img class="me" src="/icon.png" alt="" width="24" height="24" />~/fosskar</a>`,
   ...segments.map((seg, i) =>
     i === segments.length - 1
       ? `/<span aria-current="page">${esc(seg)}</span>`
@@ -246,6 +246,13 @@ const settings = fosskar.website.settings;
   }
   .crumbs a:hover {
     color: var(--accent);
+  }
+  .crumbs .me {
+    width: 1.6em;
+    height: 1.6em;
+    margin-right: 0.6em;
+    vertical-align: middle;
+    border-radius: 50%;
   }
   .crumbs [aria-current] {
     color: var(--strong);
