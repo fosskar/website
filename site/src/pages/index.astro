@@ -38,7 +38,6 @@ const hovers: Record<string, string> = {
   contact: "mail or matrix, whichever you prefer.",
   "website.settings": "how this site looks. click a value to switch it. changes stay in this browser.",
   "website.settings.colorScheme": "the colour scheme of every page.",
-  "website.settings.accent": "the colour of links and strings.",
   "website.settings.font": "the font of the text on the other pages.",
   "website.settings.fontSize": "the base size in px; everything scales with it. click to type a number, or step with ↑/↓.",
 };
@@ -68,8 +67,10 @@ const typingStyle = (n: number) => {
 // built as a string: a template inside <pre> would leak its own indentation
 const html = lines
   .map((tokens) => {
-    const length = tokens.reduce((n, t) => n + t.text.length, 0);
+    let length = tokens.reduce((n, t) => n + t.text.length, 0);
     let editable: string | undefined;
+    // what a click on this line's value does, shown on hover at the line end
+    let hint: string | undefined;
     const code = tokens
       .map((t) => {
         const text = esc(t.text);
@@ -87,20 +88,26 @@ const html = lines
         if (name && (t.kind === "string" || t.kind === "number")) {
           editable = t.path;
           const attrs = `data-setting="${name}" data-key="${t.path}" aria-label="${t.path}"`;
-          const v =
-            t.kind === "string"
-              ? `<button class="v" type="button" ${attrs}>${esc(t.text.slice(1, -1))}</button>`
-              : `<span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" ${attrs}>${text}</span>`;
-          return t.kind === "string" ? `<span class="s">"${v}"</span>` : `<span class="s">${v}</span>`;
+          if (t.kind === "number") {
+            hint = "click and type a number";
+            return `<span class="set"><span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" ${attrs}>${text}</span></span>`;
+          }
+          hint = "";
+          return `<span class="set">"<button class="v" type="button" ${attrs}>${esc(t.text.slice(1, -1))}</button>"</span>`;
         }
         if (t.kind === "string") {
           const value = t.text.slice(1, -1);
           const href = linkFor(value);
           if (href && sitePaths.has(href)) {
             editable = t.path;
-            return `<a class="s" href="${esc(href)}" data-editable>"<span class="v" spellcheck="false" data-key="${t.path}" data-orig="${esc(value)}">${esc(value)}</span>"</a>`;
+            hint = `open ${value}`;
+            return `<a class="path" href="${esc(href)}" data-editable>"<span class="v" spellcheck="false" data-key="${t.path}" data-orig="${esc(value)}">${esc(value)}</span>"</a>`;
           }
-          if (href) return `<a class="s" href="${esc(href)}">${text}</a>`;
+          if (href) {
+            length += 1;
+            hint = `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
+            return `<a class="ext" href="${esc(href)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
+          }
           return `<span class="s">${text}</span>`;
         }
         if (t.kind === "number") return `<span class="s">${text}</span>`;
@@ -108,7 +115,9 @@ const html = lines
         return text;
       })
       .join("");
-    const line = length ? `<span class="line" style="${typingStyle(length)}">${code}</span>` : code;
+    let line = length ? `<span class="line" style="${typingStyle(length)}">${code}</span>` : code;
+    if (hint !== undefined)
+      line += `<span class="hint" aria-hidden="true"${editable ? ` data-hint="${editable}"` : ""}>  # ${esc(hint)}</span>`;
     if (!editable) return line + "\n";
     // the error for a value shows under its line, indented like the line; it
     // follows the line break, which would otherwise leave a blank line after it
@@ -208,17 +217,26 @@ const html = lines
   // website.settings: a click steps through the allowed strings; the number
   // is typed, or stepped with the arrow keys
   const settings = [...nix.querySelectorAll<HTMLElement>("[data-setting]")];
+  const resets: (() => void)[] = [];
   for (const el of settings) {
     const name = el.dataset.setting as SettingName;
     const type = settingTypes[name];
     el.textContent = String(current[name]);
     if ("enum" in type) {
-      el.addEventListener("click", () => {
-        const values: readonly string[] = type.enum;
-        current = { ...current, [name]: values[(values.indexOf(String(current[name])) + 1) % values.length]! };
+      const values: readonly string[] = type.enum;
+      const next = () => values[(values.indexOf(String(current[name])) + 1) % values.length]!;
+      const hint = el.closest(".line")!.nextElementSibling as HTMLElement;
+      const show = () => {
         el.textContent = String(current[name]);
+        hint.textContent = `  # click: ${current[name]} → ${next()}`;
+      };
+      show();
+      el.addEventListener("click", () => {
+        current = { ...current, [name]: next() };
+        show();
         save();
       });
+      resets.push(show);
       continue;
     }
     const commit = () => {
@@ -307,6 +325,7 @@ const html = lines
   restore.addEventListener("click", () => {
     current = { ...defaults };
     for (const el of settings) el.textContent = String(current[el.dataset.setting as SettingName]);
+    for (const show of resets) show();
     for (const a of paths) {
       const v = a.querySelector<HTMLElement>(".v")!;
       v.textContent = v.dataset.orig!;
@@ -374,37 +393,54 @@ const html = lines
   .home .p {
     color: var(--dim);
   }
-  .home a.s {
+  /* the kind of value decides its colour; no underlines */
+  .home .path {
+    color: var(--path);
+  }
+  .home .ext {
+    color: var(--ext);
+  }
+  .home .set {
+    color: var(--set);
+  }
+  .home :is(.path, .ext) {
     text-decoration: none;
-    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius: 3px;
   }
-  .home a.s:hover {
-    color: var(--accent-bright);
-    border-bottom-style: solid;
+  .home .arrow {
+    font-size: 0.8em;
+    margin-left: 0.1em;
   }
-  /* values a visitor can type into */
-  /* a button is an inline block: with the code's line-height its border
-     would sit at the bottom of the whole line */
+  /* a button is an inline block: with the code's line-height it would be as
+     tall as the whole line */
   .home button.v {
     font: inherit;
     line-height: normal;
     color: inherit;
     background: none;
     border: 0;
-    border-bottom: 1px dashed var(--string);
     padding: 0;
+    border-radius: 3px;
     cursor: pointer;
   }
-  .home button.v:hover {
-    color: var(--accent-bright);
-  }
   .home .v[contenteditable="plaintext-only"] {
-    border-bottom: 1px dashed var(--string);
     outline: none;
+    border-radius: 3px;
     cursor: text;
   }
+  .home :is(.path, .ext, button.v, .v[contenteditable]):is(:hover, :focus-visible),
   .home .v:focus {
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    background: color-mix(in srgb, currentColor 16%, transparent);
+  }
+  /* what a click does, as a comment at the line end; invisible text still
+     counts for the block width, so showing it moves nothing */
+  .home .hint {
+    color: var(--dim);
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .home .line:is(:hover, :focus-within) + .hint {
+    opacity: 1;
   }
   /* wraps inside the file's width instead of widening the centered block */
   .home .err {
@@ -451,7 +487,6 @@ const html = lines
   .home .hover {
     position: relative;
     cursor: help;
-    border-bottom: 1px dotted var(--dim);
   }
   .home .tip {
     display: none;

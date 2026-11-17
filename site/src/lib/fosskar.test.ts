@@ -115,8 +115,8 @@ describe("checkSetting", () => {
     expect(checkSetting("fontSize", 99)).toBe(
       "A definition for option `website.settings.fontSize' is not of type `integer between 12 and 24 (both inclusive)'. Definition values:\n- In `fosskar.nix': 99",
     );
-    expect(checkSetting("accent", "red")).toContain(
-      'is not of type `one of "teal", "blue", "orange", "pink"\'',
+    expect(checkSetting("colorScheme", "blue")).toContain(
+      'is not of type `one of "dark", "light"\'',
     );
     expect(checkSetting("fontSize", 16.5)).toBeDefined();
   });
@@ -124,7 +124,6 @@ describe("checkSetting", () => {
   it("has a type for every setting", () => {
     expect(Object.keys(settingTypes)).toEqual([
       "colorScheme",
-      "accent",
       "font",
       "fontSize",
     ]);

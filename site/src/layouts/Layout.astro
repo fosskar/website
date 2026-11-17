@@ -1,6 +1,6 @@
 ---
 import "@fontsource-variable/inter";
-import "@fontsource/commit-mono/400.css";
+import "@fontsource/commit-mono/500.css";
 import "@fontsource/commit-mono/600.css";
 import Search from "../components/Search.astro";
 import { getCollection } from "astro:content";
@@ -48,7 +48,6 @@ const items = searchItems({
 <html
   lang={lang}
   data-theme={settings.colorScheme}
-  data-accent={settings.accent}
   data-font={settings.font}
   style={`--font-size: ${settings.fontSize}px`}
 >
@@ -65,7 +64,6 @@ const items = searchItems({
       const root = document.documentElement;
       window.applySettings = (s) => {
         root.dataset.theme = s.colorScheme;
-        root.dataset.accent = s.accent;
         root.dataset.font = s.font;
         root.style.setProperty("--font-size", `${s.fontSize}px`);
       };
@@ -131,8 +129,9 @@ const items = searchItems({
 </html>
 
 <style is:global>
-  /* grey-teal from nixfiles modules/flake-parts/themes.nix; --accent deviates
-     from it in both modes to keep link text at 4.5:1 contrast */
+  /* pi-jade from nixfiles modules/flake-parts/themes.nix: the pi logo
+     colours with a jade primary. on the home page they tell the kinds of
+     value apart: site paths coral, external blue, settings yellow */
   :root {
     --bg: #1b1b1b;
     --bg-alt: #232323;
@@ -141,9 +140,12 @@ const items = searchItems({
     --strong: #f0f0f0;
     --muted: #9d9d9d;
     --dim: #6a6a6a;
-    --accent: #1aab8e;
-    --accent-bright: #1abc9c;
-    --string: #9fc9bd;
+    --accent: #6fc29b;
+    --accent-bright: #8fd3b3;
+    --string: #6fc29b;
+    --path: #f09082;
+    --ext: #4d9abf;
+    --set: #f1be58;
     --mono: "Commit Mono", ui-monospace, monospace;
     color-scheme: dark;
     font-family: "Inter Variable", system-ui, sans-serif;
@@ -155,42 +157,14 @@ const items = searchItems({
     --text: #262626;
     --strong: #0e0e0e;
     --muted: #616161;
-    --dim: #8a8a8a;
-    --accent: #0b6e5b;
-    --accent-bright: #085446;
-    --string: #1d6b5a;
+    --dim: #707070;
+    --accent: #1f7855;
+    --accent-bright: #165c41;
+    --string: #1f7855;
+    --path: #a85044;
+    --ext: #207296;
+    --set: #8a6403;
     color-scheme: light;
-  }
-  /* website.settings.accent; teal is the default above */
-  :root[data-accent="blue"] {
-    --accent: #4f9ee8;
-    --accent-bright: #6cb0f0;
-    --string: #a9c8e8;
-  }
-  :root[data-accent="orange"] {
-    --accent: #e08a3c;
-    --accent-bright: #f0a050;
-    --string: #e3c09a;
-  }
-  :root[data-accent="pink"] {
-    --accent: #d66ba0;
-    --accent-bright: #e48bb6;
-    --string: #e0b3c9;
-  }
-  :root[data-theme="light"][data-accent="blue"] {
-    --accent: #1d5fa8;
-    --accent-bright: #164c87;
-    --string: #2a5d8f;
-  }
-  :root[data-theme="light"][data-accent="orange"] {
-    --accent: #a5520f;
-    --accent-bright: #86420b;
-    --string: #8a5420;
-  }
-  :root[data-theme="light"][data-accent="pink"] {
-    --accent: #a3336b;
-    --accent-bright: #852856;
-    --string: #8f3d66;
   }
   :root[data-font="commit mono"] {
     font-family: var(--mono);

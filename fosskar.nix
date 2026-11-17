@@ -26,7 +26,6 @@
   # click a value to change it
   website.settings = {
     colorScheme = "dark";
-    accent = "teal";
     font = "inter";
     fontSize = 18;
   };
