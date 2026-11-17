@@ -119,15 +119,18 @@ const html = lines
     <div class="fade top" aria-hidden="true"></div>
     <div class="fade bottom on" aria-hidden="true"></div>
     <script is:inline>
-      // types the file once per session; set before the first paint
+      // types the file when the site is opened fresh: not on reload, back or
+      // forward, or when coming from another page of this site
+      const nav = performance.getEntriesByType("navigation")[0];
+      const fromHere =
+        document.referrer && new URL(document.referrer).origin === location.origin;
       if (
         document.documentElement.dataset.typing !== "false" &&
-        !sessionStorage.getItem("typed") &&
+        nav?.type === "navigate" &&
+        !fromHere &&
         !matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        sessionStorage.setItem("typed", "1");
+      )
         document.currentScript.parentElement.classList.add("typing");
-      }
     </script>
     <pre
       class="nix"
