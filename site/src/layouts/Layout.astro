@@ -1,101 +1,121 @@
 ---
-import Social from "../components/Social.astro";
+import "@fontsource-variable/inter";
+import "@fontsource/commit-mono/500.css";
+import Search from "../components/Search.astro";
+import { fosskar, settings, storePath } from "../lib/site-data";
 
 interface Props {
   title: string;
   description?: string;
   lang?: string;
+  /** full-width main column (home, cv); articles keep the reading width */
+  wide?: boolean;
+  noindex?: boolean;
 }
-const { title, description, lang = "en" } = Astro.props;
-const nav = [
-  { href: "/", label: "home" },
-  { href: "/blog/", label: "blog" },
-  { href: "/wiki/", label: "wiki" },
-  { href: "/projects/", label: "projects" },
-  { href: "/about/", label: "about" },
-];
-const path = Astro.url.pathname;
+const {
+  title,
+  description,
+  lang = "en",
+  wide = false,
+  noindex = false,
+} = Astro.props;
+// subpages start with their path, each segment a link; the home page has none
+const segments = Astro.url.pathname.split("/").filter(Boolean);
+const esc = (t: string) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+// built as a string so template whitespace can't split the path
+const crumbs = [
+  `<a href="/" translate="no"><img class="me" src="/icon.png" alt="" width="24" height="24" />~/fosskar</a>`,
+  ...segments.map((seg, i) =>
+    i === segments.length - 1
+      ? `/<span aria-current="page">${esc(seg)}</span>`
+      : `/<a href="/${segments.slice(0, i + 1).map(esc).join("/")}/">${esc(seg)}</a>`,
+  ),
+].join("");
+
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html
+  lang={lang}
+  data-theme={settings.colorScheme === "light" ? "light" : "dark"}
+  data-typing={String(settings["typing.enable"])}
+  data-hints={String(settings["hints.enable"])}
+  style={`--font-size: ${settings.fontSize}px`}
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <link rel="alternate" type="application/rss+xml" title="fosskar blog" href="/rss.xml" />
     <meta name="generator" content={Astro.generator} />
-    <meta
-      name="theme-color"
-      content="#202020"
-      media="(prefers-color-scheme: dark)"
-    />
-    <meta
-      name="theme-color"
-      content="#fafafa"
-      media="(prefers-color-scheme: light)"
-    />
     {description && <meta name="description" content={description} />}
+    {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
+    <!-- website.settings from fosskar.nix; values changed on the home page win -->
+    <script is:inline define:vars={{ settings }}>
+      const root = document.documentElement;
+      // "system" follows the os setting, also when it changes later
+      const light = matchMedia("(prefers-color-scheme: light)");
+      let scheme = settings.colorScheme;
+      const theme = () =>
+        (root.dataset.theme =
+          scheme === "system" ? (light.matches ? "light" : "dark") : scheme);
+      light.addEventListener("change", theme);
+      window.applySettings = (s) => {
+        scheme = s.colorScheme;
+        theme();
+        root.style.setProperty("--font-size", `${s.fontSize}px`);
+        root.dataset.typing = String(s["typing.enable"]);
+        root.dataset.hints = String(s["hints.enable"]);
+      };
+      // localStorage is outside the build: older builds stored other keys,
+      // and the value may not parse
+      let saved = {};
+      try {
+        saved = JSON.parse(localStorage.getItem("settings") ?? "{}");
+      } catch {
+        localStorage.removeItem("settings");
+      }
+      const known = Object.keys(settings).filter((k) => k in saved);
+      applySettings({ ...settings, ...Object.fromEntries(known.map((k) => [k, saved[k]])) });
+    </script>
   </head>
   <body>
     <a class="skip" href="#content">skip to content</a>
-    <header>
-      <nav>
-        <a href="/" class="brand" translate="no">fosskar</a>
-        <div class="links">
-          {
-            nav.map((item) => (
-              <a
-                href={item.href}
-                class:list={{
-                  active:
-                    item.href === "/"
-                      ? path === "/"
-                      : path.startsWith(item.href),
-                }}
-              >
-                {item.label}
-              </a>
-            ))
-          }
-        </div>
-      </nav>
-    </header>
-    <main id="content">
+    {
+      segments.length > 0 && (
+        <header class="crumbs">
+          <div class="bar">
+            <nav aria-label="breadcrumb" set:html={crumbs} />
+            <button class="search-btn" type="button" data-search-open>
+              search <kbd>⌘K</kbd>
+            </button>
+          </div>
+        </header>
+      )
+    }
+    <main id="content" class:list={{ wide }}>
       <slot />
     </main>
     <footer>
-      <span>© {new Date().getFullYear()} fosskar</span>
-      <Social />
+      <div class="bar">
+        <span>
+          © {new Date().getFullYear()} {fosskar.name}
+        </span>
+        {
+          storePath && (
+            <span
+              class="built"
+              set:html={`built as <span class="dim">/nix/store/</span>${esc(storePath.replace("/nix/store/", ""))}`}
+            />
+          )
+        }
+      </div>
     </footer>
-    <button id="to-top" aria-label="back to top" hidden>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="m18 15-6-6-6 6"></path>
-      </svg>
-    </button>
-    <script>
-      const btn = document.getElementById("to-top")!;
-      const toggle = () => {
-        btn.hidden = window.scrollY < 400;
-      };
-      window.addEventListener("scroll", toggle, { passive: true });
-      toggle();
-      btn.addEventListener("click", () => {
-        window.scrollTo({ top: 0 });
-        document
-          .querySelector<HTMLElement>(".skip")!
-          .focus({ preventScroll: true });
-      });
-    </script>
+    <dialog id="search-dialog" aria-label="search">
+      <Search />
+    </dialog>
     <script>
       // hover "#" anchors on article body headings
       document
@@ -114,63 +134,77 @@ const path = Astro.url.pathname;
 </html>
 
 <style is:global>
-  /* grey-teal — nixfiles modules/flake-parts/themes.nix; --accent deviates
-     from it in both modes to keep link text at 4.5:1 contrast */
+  /* pi-jade from nixfiles modules/flake-parts/themes.nix: the pi logo
+     colours with a jade primary. on the home page they tell the kinds of
+     value apart: site paths coral, external blue, settings yellow */
   :root {
-    color-scheme: dark light;
-    --bg: #202020;
-    --bg-alt: #282828;
-    --border: #303030;
-    --text: #cccccc;
+    --bg: #1b1b1b;
+    --bg-alt: #232323;
+    --border: #2e2e2e;
+    --text: #cfcfcf;
+    --strong: #f0f0f0;
     --muted: #9d9d9d;
-    --dim: #616161;
-    --accent: #1aab8e;
-    --accent-bright: #1abc9c;
-    font-family: system-ui, sans-serif;
+    --dim: #8a8a8a;
+    --accent: #6fc29b;
+    --accent-bright: #8fd3b3;
+    --string: #6fc29b;
+    --path: #f09082;
+    --ext: #4d9abf;
+    --set: #f1be58;
+    --red: #e65b53;
+    --mono: "Commit Mono", ui-monospace, monospace;
+    color-scheme: dark;
+    font-family: "Inter Variable", system-ui, sans-serif;
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #fafafa;
-      --bg-alt: #f2f2f2;
-      --border: #e0e0e0;
-      --text: #181818;
-      --muted: #616161;
-      --dim: #9d9d9d;
-      --accent: #0b6e5b;
-      --accent-bright: #085446;
-    }
+  /* pi-jade light: grey, not white; cards and code sit lighter than the
+     page so the colours keep 4.5:1 on both */
+  :root[data-theme="light"] {
+    --bg: #ebebeb;
+    --bg-alt: #f5f5f5;
+    --border: #d4d4d4;
+    --text: #222222;
+    --strong: #0e0e0e;
+    --muted: #5b5b5b;
+    --dim: #666666;
+    --accent: #1f7855;
+    --accent-bright: #165c41;
+    --string: #1f7855;
+    --path: #a85044;
+    --ext: #207296;
+    --set: #8a6403;
+    --red: #b8352c;
+    color-scheme: light;
   }
   html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 2rem;
   }
-  /* header nav wraps to two rows on narrow screens */
-  @media (max-width: 30rem) {
-    html {
-      scroll-padding-top: 8rem;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-    .heading-anchor {
-      transition: none;
+  /* fontSize only sizes the home page; the other pages keep 16px. screen
+     only, because the cv sets its own root size for print */
+  @media screen {
+    html:has(main > .home) {
+      font-size: var(--font-size);
     }
   }
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .skip {
     position: absolute;
     left: 1rem;
     top: -4rem;
-    z-index: 20;
+    z-index: 60;
     padding: 0.5rem 1rem;
     background: var(--bg-alt);
     border: 1px solid var(--border);
-    border-radius: 8px;
   }
   .skip:focus-visible {
     top: 0.5rem;
@@ -178,103 +212,137 @@ const path = Astro.url.pathname;
   * {
     box-sizing: border-box;
   }
+  /* the hidden attribute must win over component display rules */
+  [hidden] {
+    display: none !important;
+  }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.65;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: color-mix(
-      in srgb,
-      var(--accent) 20%,
-      transparent
-    );
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
     display: flex;
     min-height: 100vh;
     flex-direction: column;
   }
 
-  /* ---- header ---- */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-  }
-  header nav {
-    max-width: 46rem;
+  .bar {
+    max-width: 72rem;
     margin: 0 auto;
-    padding: 0.5rem 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
-  }
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    font-weight: 700;
-    font-size: 1.05rem;
-    text-decoration: none;
-    color: var(--text);
-  }
-  .brand:hover {
-    color: var(--accent);
-  }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.125rem;
-  }
-  .links a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 0.95rem;
-    padding: 0 0.5rem;
-    border-radius: 8px;
-    transition:
-      color 0.15s ease,
-      background 0.15s ease;
-  }
-  .links a:hover {
-    color: var(--text);
-    background: color-mix(in srgb, var(--text) 7%, transparent);
-  }
-  .links a.active {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-  }
-
-  main {
-    max-width: 46rem;
-    margin: 0 auto;
-    padding: 2rem 1rem 3rem;
-    width: 100%;
-    flex: 1;
-    overflow-wrap: break-word;
-  }
-
-  /* ---- footer ---- */
-  footer {
-    border-top: 1px solid var(--border);
-    max-width: 46rem;
-    margin: 0 auto;
-    padding: 1rem;
-    width: 100%;
-    color: var(--muted);
-    font-size: 0.85rem;
+    padding: 0 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
+  }
+
+  /* ---- path line on subpages ---- */
+  .crumbs {
+    font: 0.9rem var(--mono);
+  }
+  .crumbs .bar {
+    padding-block: 1.6rem 0;
+  }
+  .crumbs nav {
+    color: var(--dim);
+    overflow-wrap: anywhere;
+  }
+  .crumbs a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .crumbs a:hover {
+    color: var(--accent);
+  }
+  .crumbs .me {
+    width: 1.6em;
+    height: 1.6em;
+    margin-right: 0.6em;
+    vertical-align: middle;
+    border-radius: 50%;
+  }
+  .crumbs [aria-current] {
+    color: var(--strong);
+  }
+  .search-btn {
+    flex: none;
+    font: inherit;
+    font-size: 0.82rem;
+    color: var(--dim);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0;
+  }
+  .search-btn:hover {
+    color: var(--strong);
+  }
+  kbd {
+    font: 500 0.72rem var(--mono);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  @media (max-width: 48rem) {
+    .bar {
+      padding: 0 1.25rem;
+    }
+  }
+
+  /* ---- search dialog ---- */
+  #search-dialog {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    width: min(40rem, 92vw);
+    margin-top: 15vh;
+    overflow: visible;
+  }
+  #search-dialog::backdrop {
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
+  }
+
+  main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 3.5rem 2rem 5rem;
+    width: 100%;
+    flex: 1;
+    overflow-wrap: break-word;
+  }
+  main.wide {
+    max-width: 72rem;
+  }
+  @media (max-width: 48rem) {
+    main {
+      padding-inline: 1.25rem;
+    }
+  }
+
+  /* ---- footer: one line ---- */
+  footer {
+    color: var(--dim);
+    font: 0.78rem/1.7 var(--mono);
+  }
+  footer .bar {
+    padding-block: 2rem;
+    gap: 1rem 2rem;
+    flex-wrap: wrap;
+  }
+  footer a {
+    color: var(--muted);
+  }
+  footer .built {
+    overflow-wrap: anywhere;
+  }
+  footer .dim {
+    color: var(--dim);
   }
 
   /* ---- typography ---- */
@@ -282,23 +350,28 @@ const path = Astro.url.pathname;
   h2,
   h3 {
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     text-wrap: balance;
+    color: var(--strong);
   }
   h1 {
-    font-size: 2rem;
-    margin: 0 0 0.75rem;
+    font-size: 2.4rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem;
   }
   h2 {
-    font-size: 1.35rem;
-    margin: 2rem 0 0.75rem;
+    font-size: 1.4rem;
+    margin: 2.75rem 0 0.75rem;
   }
   h3 {
     font-size: 1.1rem;
     margin: 1.5rem 0 0.5rem;
   }
   p {
-    margin: 0.75rem 0;
+    margin: 1.1rem 0;
+  }
+  li + li {
+    margin-top: 0.3rem;
   }
   a {
     color: var(--accent);
@@ -310,15 +383,20 @@ const path = Astro.url.pathname;
     background: var(--bg-alt);
     padding: 0.1em 0.35em;
     border-radius: 4px;
-    font-family: ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.9em;
   }
   pre {
     background: var(--bg-alt) !important;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 1rem;
     overflow-x: auto;
+  }
+  /* shiki's light theme is made for white; a darker block drops its
+     comments below 4.5:1 */
+  :root[data-theme="light"] .astro-code {
+    background: var(--bg-alt) !important;
   }
   pre code {
     background: none;
@@ -326,21 +404,16 @@ const path = Astro.url.pathname;
   }
   /* shiki dual themes: tokens carry inline light colors plus --shiki-dark
      variables; switch to them when the site renders dark */
-  @media (prefers-color-scheme: dark) {
-    .astro-code,
-    .astro-code span {
-      color: var(--shiki-dark) !important;
-      font-style: var(--shiki-dark-font-style) !important;
-      font-weight: var(--shiki-dark-font-weight) !important;
-    }
+  :root:not([data-theme="light"]) :is(.astro-code, .astro-code span) {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
   }
   blockquote {
-    border-left: 3px solid var(--accent);
+    border-left: 2px solid var(--accent);
     margin-left: 0;
     padding: 0.25rem 0 0.25rem 1rem;
     color: var(--muted);
-    background: color-mix(in srgb, var(--accent) 5%, transparent);
-    border-radius: 0 8px 8px 0;
   }
   hr {
     border: none;
@@ -364,16 +437,19 @@ const path = Astro.url.pathname;
   }
   img {
     max-width: 100%;
-    border-radius: 10px;
+    border-radius: 6px;
   }
 
-  /* ---- shared components ---- */
+  /* ---- shared components: flat surfaces, no blur or glow ---- */
+  .surface,
   .card {
-    display: block;
     background: var(--bg-alt);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
+  }
+  .card {
+    display: block;
+    border-radius: 8px;
+    padding: 1.1rem 1.35rem;
     transition: border-color 0.15s ease;
   }
   a.card {
@@ -383,54 +459,22 @@ const path = Astro.url.pathname;
   a.card:hover {
     border-color: var(--dim);
   }
-  .card h2 {
-    margin: 0 0 0.25rem;
-    font-size: 1.2rem;
-  }
-  .card > .desc {
-    margin: 0 0 0.5rem;
-    font-size: 0.9rem;
-  }
   .stack {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
   .muted {
     color: var(--muted);
   }
   .chip {
     display: inline-block;
-    font-size: 0.75rem;
-    line-height: 1.4;
-    padding: 0.125rem 0.5rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    color: var(--accent);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-  .chip:hover {
-    color: var(--accent-bright);
-  }
-  .section-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    margin: 2.5rem 0 1rem;
-  }
-  .section-head h2 {
-    margin: 0;
-  }
-  .section-head .view-all {
+    font: 0.75rem/1.4 var(--mono);
+    padding: 0.05rem 0.45rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
     color: var(--muted);
-    text-decoration: none;
-    font-size: 0.85rem;
     white-space: nowrap;
-  }
-  .section-head .view-all:hover {
-    color: var(--accent);
   }
   .meta {
     color: var(--muted);
@@ -442,47 +486,49 @@ const path = Astro.url.pathname;
     margin: 0.25rem 0;
   }
 
-  /* ---- back to top ---- */
-  #to-top {
-    position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-alt);
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    cursor: pointer;
-    z-index: 10;
-    transition:
-      color 0.15s ease,
-      border-color 0.15s ease;
-  }
-  #to-top:hover {
-    color: var(--accent);
-    border-color: var(--dim);
-  }
-  #to-top[hidden] {
-    display: none;
-  }
-  #to-top svg {
-    width: 1.1rem;
-    height: 1.1rem;
-  }
-
   /* ---- heading anchors ---- */
   .heading-anchor {
     margin-left: 0.5rem;
     color: var(--accent);
     text-decoration: none;
     opacity: 0;
-    transition: opacity 0.15s ease;
   }
   :is(h2, h3, h4):hover .heading-anchor {
     opacity: 1;
+  }
+
+  @media print {
+    /* paper is light whatever the screen theme is */
+    :root,
+    :root[data-theme] {
+      color-scheme: light;
+      --bg: #fff;
+      --bg-alt: #fff;
+      --border: #e0e0e0;
+      --text: #262626;
+      --strong: #0e0e0e;
+      --muted: #616161;
+      --dim: #6b6b6b;
+      --accent: #1f7855;
+      --accent-bright: #165c41;
+      --string: #1f7855;
+      --path: #a85044;
+      --ext: #207296;
+      --set: #8a6403;
+      --red: #c4392f;
+    }
+    .crumbs,
+    footer,
+    #search-dialog {
+      display: none !important;
+    }
+    body {
+      display: block;
+      background: none;
+    }
+    main {
+      padding: 0;
+      max-width: none;
+    }
   }
 </style>

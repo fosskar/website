@@ -1,11 +1,11 @@
 ---
 title: luks2 swapfile hibernate resume on NixOS
-description: configure resumeDevice and resume_offset when a swapfile lives inside an unlocked luks2 root filesystem
+description: configure resumeDevice and resume_offset when a swapfile is stored on an unlocked luks2 root filesystem
 date: 2024-07-22
 type: note
 ---
 
-if the swapfile lives inside the already-unlocked root filesystem, you do not need a separate encrypted swap device. the important extra bit is hibernate resume: the kernel needs both the unlocked device and the file's physical offset so it can find the image again during early boot.
+if the swapfile is stored on the already-unlocked root filesystem, you do not need a separate encrypted swap device. the important extra bit is hibernate resume: the kernel needs both the unlocked device and the file's physical offset so it can find the image again during early boot.
 
 ```nix
 # configuration.nix — offset is from this setup's machine

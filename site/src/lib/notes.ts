@@ -25,12 +25,11 @@ export function sectionHref(section: string): string {
 
 // section metadata lives here so folders need no index.md
 export const SECTIONS: Record<string, string> = {
-  nixos: "NixOS-specific system, security, and troubleshooting notes",
+  nixos: "system configuration, security and troubleshooting on nixos",
   kubernetes:
-    "talos, cilium, cluster api, networking, gitops, and local development notes",
-  homelab: "proxmox, networking, identity, storage, and infrastructure notes",
-  security:
-    "hardware tokens, authentication, encryption, and key management notes",
+    "talos, cilium, cluster api, networking, gitops and local development",
+  homelab: "proxmox, networking, identity, storage and infrastructure",
+  security: "hardware tokens, authentication, encryption and key management",
 };
 
 /** described sections first (in SECTIONS order), the rest alphabetical */
@@ -54,7 +53,7 @@ export function assertUniqueSlugs(ids: Iterable<string>): void {
   }
 }
 
-export interface NoteLike {
+interface NoteLike {
   id: string;
   data: { title: string };
 }

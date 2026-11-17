@@ -60,7 +60,7 @@ adds `40ms` base delay with `10ms` jitter. `distribution normal` avoids uniform 
 sudo tc qdisc replace dev <interface> root netem delay 40ms loss 1%
 ```
 
-use for reconnects, interpolation, rubber-banding, or voice/chat behaviour. start small; `1%` loss is visible in realtime traffic.
+use for reconnects, interpolation, rubber-banding, or voice/chat behaviour. start small. `1%` loss is visible in realtime traffic.
 
 ## inspect the active qdisc
 

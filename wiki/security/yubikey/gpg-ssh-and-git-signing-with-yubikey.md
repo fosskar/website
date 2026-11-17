@@ -5,11 +5,11 @@ date: 2025-08-23
 type: guide
 ---
 
-this setup keeps the offline master key out of daily use, moves the working subkeys onto yubikeys, and lets `gpg-agent` act as the ssh agent. that way ssh and git signing use hardware-backed keys without scattering private key files around the machine.
+in this setup the offline master key is not used day to day. the working subkeys are on yubikeys, and `gpg-agent` acts as the ssh agent. that way ssh and git signing use hardware-backed keys without scattering private key files around the machine.
 
 ## key layout
 
-| key          | job                        | where it lives |
+| key          | job                        | stored on      |
 | ------------ | -------------------------- | -------------- |
 | master `[C]` | certify and manage subkeys | offline backup |
 | subkey `[S]` | sign commits and messages  | yubikey        |
@@ -76,7 +76,7 @@ choices used here:
 - no expiry for the master key
 - no passphrase in this flow
 
-the master key stays offline because it is the key that can create new subkeys, extend expiry, and revoke things. losing it is annoying. carrying it around daily is worse.
+the master key is kept offline because it is the key that creates new subkeys. extending expiry and revoking things also need it. losing it is annoying. carrying it around daily is worse.
 
 ## 2. add subkeys
 
@@ -305,7 +305,7 @@ with one yubikey inserted:
 ssh-add -L
 ```
 
-expected: the same public key as in `~/.ssh/id_yubikey.pub`. swap yubikeys and run it again; both devices should expose the same ssh key. for a fuller check, `gpg --card-status | grep Serial` shows which yubikey is inserted, `gpg -K` marks the subkeys with `>` (on the smartcard), and `ssh -T git@github.com` should authenticate.
+expected: the same public key as in `~/.ssh/id_yubikey.pub`. swap yubikeys and run it again. both devices should expose the same ssh key. for a fuller check, `gpg --card-status | grep Serial` shows which yubikey is inserted, `gpg -K` marks the subkeys with `>` (on the smartcard), and `ssh -T git@github.com` should authenticate.
 
 ## references
 

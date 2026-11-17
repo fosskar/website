@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest";
+import { checkSetting, linkFor, suggest, tokenize } from "./fosskar";
+
+const src = `# fosskar.nix
+{
+  role = "sre";
+  likes = [
+    "nix"
+  ];
+  contact = {
+    mail = "simon@nx3.eu";
+  };
+  website.settings = {
+    fontSize = 16;
+  };
+}`;
+
+describe("tokenize", () => {
+  const lines = tokenize(src);
+  const flat = lines.flat();
+
+  it("marks comments, attribute names and strings", () => {
+    expect(flat.find((t) => t.kind === "comment")?.text).toBe("# fosskar.nix");
+    expect(flat.filter((t) => t.kind === "attr").map((t) => t.text)).toEqual([
+      "role",
+      "likes",
+      "contact",
+      "mail",
+      "website.settings",
+      "fontSize",
+    ]);
+  });
+
+  it("gives names and values their attribute path, nested sets included", () => {
+    const attr = (text: string) =>
+      flat.find((t) => t.kind === "attr" && t.text === text);
+    const str = (text: string) =>
+      flat.find((t) => t.kind === "string" && t.text === text);
+    expect(attr("mail")?.path).toBe("contact.mail");
+    expect(str('"simon@nx3.eu"')?.path).toBe("contact.mail");
+    expect(str('"nix"')?.path).toBe("likes");
+    expect(str('"sre"')?.path).toBe("role");
+  });
+
+  it("follows dotted attribute names into the set they open", () => {
+    expect(
+      flat.find((t) => t.kind === "attr" && t.text === "fontSize")?.path,
+    ).toBe("website.settings.fontSize");
+    expect(flat.find((t) => t.kind === "number")).toEqual({
+      kind: "number",
+      text: "16",
+      path: "website.settings.fontSize",
+    });
+  });
+});
+
+describe("linkFor", () => {
+  it("links site paths, urls, mail addresses and matrix ids", () => {
+    expect(linkFor("/blog/")).toBe("/blog/");
+    expect(linkFor("./blog/")).toBe("/blog/");
+    expect(linkFor("github:fosskar/nixfiles")).toBe(
+      "https://github.com/fosskar/nixfiles",
+    );
+    expect(linkFor("https://github.com/fosskar")).toBe(
+      "https://github.com/fosskar",
+    );
+    expect(linkFor("simon@nx3.eu")).toBe("mailto:simon@nx3.eu");
+    expect(linkFor("@fosskar:fosskar.de")).toBe(
+      "https://matrix.to/#/@fosskar:fosskar.de",
+    );
+  });
+});
+
+describe("suggest", () => {
+  it("returns the closest candidates first", () => {
+    expect(suggest("blgo", ["wiki", "blog", "about", "cv"])[0]).toBe("blog");
+  });
+});
+
+describe("checkSetting", () => {
+  it("rejects other values with the error nixos would print", () => {
+    expect(checkSetting("fontSize", 99)).toBe(
+      "A definition for option `website.settings.fontSize' is not of type `integer between 12 and 24 (both inclusive)'. Definition values:\n- In `fosskar.nix': 99",
+    );
+    expect(checkSetting("colorScheme", "blue")).toContain(
+      'is not of type `one of "dark", "light", "system"\'',
+    );
+    expect(checkSetting("fontSize", 16.5)).toBeDefined();
+  });
+});

@@ -5,7 +5,7 @@ date: 2026-07-07
 type: guide
 ---
 
-this is the basic systemd-cryptenroll path: keep the normal luks passphrase, then add a tpm-backed unlock method on top. the tpm only helps if the machine still looks like the one you enrolled, which is why the pcr list matters — and why a firmware update will put you back at the passphrase prompt.
+this is the basic systemd-cryptenroll path: keep the normal luks passphrase, then add a tpm-backed unlock method on top. the tpm only helps if the machine still looks like the one you enrolled. the pcr list sets what has to match, and a firmware update will put you back at the passphrase prompt.
 
 ## prerequisites
 
@@ -51,7 +51,7 @@ boot.initrd.systemd.tpm2.enable = true;
 boot.initrd.luks.devices.<name>.crypttabExtraOpts = [ "tpm2-device=auto" ];
 ```
 
-the scripted (non-systemd) initrd cannot do tpm2 unlock; `boot.initrd.systemd.enable` is the switch that makes `systemd-cryptsetup` handle the device.
+the scripted (non-systemd) initrd cannot do tpm2 unlock. `boot.initrd.systemd.enable` is the switch that makes `systemd-cryptsetup` handle the device.
 
 ## enroll the luks slot
 
@@ -84,7 +84,7 @@ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+1+2+3+7 <luks2-partiti
 sudo systemd-cryptenroll <luks2-partition>
 ```
 
-expected: a slot table listing `password` (slot 0) and `tpm2` (slot 1). then reboot — the volume should open without a passphrase prompt.
+expected: a slot table listing `password` (slot 0) and `tpm2` (slot 1). then reboot. the volume should open without a passphrase prompt.
 
 ## related
 

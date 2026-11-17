@@ -2,31 +2,46 @@
 
 ## Project Overview
 
-Personal bliki ("half blog, half wiki") published at https://bliki.fosskar.eu. Markdown content authored in an Obsidian vault, rendered by a minimal Astro static site, built reproducibly with Nix. `CONTEXT.md` is the domain glossary (note, section, wikilink, post, project) — use its vocabulary in code and prose.
+Personal website published at https://simon.fosskar.eu: the home page is `fosskar.nix`, plus a blog, a wiki, an about page and a cv. Markdown content is written in an Obsidian vault and rendered by a minimal Astro static site, which Nix builds reproducibly. `CONTEXT.md` is the domain glossary (note, section, wikilink, post, project). Use its vocabulary in code and prose.
 
 ## Architecture & Data Flow
 
-Content lives at the **repo root**, outside the app. `site/src/content.config.ts` loads three collections via glob with `base: "../<dir>"`:
+Content is stored at the **repo root**, outside the app. `site/src/content.config.ts` loads three collections via glob with `base: "../<dir>"`:
 
 - `wiki/` → notes, routed **flat** as `/wiki/<basename>/` regardless of directory depth (vault-root `wiki/index.md` is the Obsidian home page, excluded via `!index.md`)
 - `blog/` → posts at `/blog/<id>/` (drafts filtered)
-- `projects/` → cards on `/projects/` (single page, ordered by `order`)
+- `projects/` → listed on the about pages (ordered by `order`). `/cv/` shows the ids in its `projects` list. `projects` in `fosskar.nix` lists the same repo names and maps them to flake references (`github:fosskar/<repo>`); it is kept by hand. List entries on the home page link to the value nix evaluates them to; the home page takes each project's hint from its `description`
+
+`fosskar.nix` at the repo root is the site's own data: name, role, links and the `website.settings` defaults. The types of `website.settings` live in `settingTypes` in `site/src/lib/fosskar.ts`. `site-data.ts` fails the build on a value that doesn't match its type. `nix/package.nix` evaluates it with `builtins.toJSON` into `site-data.json`. The build copies that file to `site/src/generated/`, and the devshell symlinks the same file there for `npm run dev`. The home page shows `fosskar.nix` verbatim, formatted by nixfmt like every other nix file.
+
+The build has three steps in `nix/package.nix`:
+
+- `website-unwrapped`: the astro build. It gets its own output path as `SITE_STORE_PATH` for the footer
+- `cv` (`nix build .#cv`): headless chromium prints `/cv/` and `/cv/de/` of the unwrapped site to `cv.pdf` and `lebenslauf.pdf`, through a local http server because the pages load assets from absolute paths. The pdf comes from the cv page's `@media print` styles
+- `website` (default): the unwrapped site plus the pdfs under `cv/`. It replaces the unwrapped store path in the html with its own. The page then shows the path `nix build` prints
+
+`npm run dev` has no pdfs. The download links on `/cv/` only resolve in the nix build.
+
+The surname must not appear as text anywhere on the site: `Cv.astro` draws it from the svg outlines in `site/src/assets/`, blurred on screen and sharp in print. The cv pages are `noindex` and left out of the sitemap (`astro.config.ts`). `robots.txt` blocks only the pdfs, which have no place for a `noindex`. Blocking the pages would hide that tag from crawlers.
 
 Domain logic is centralized in `site/src/lib/`:
 
-- `notes.ts` — note identity and wikilinks: `slugOf`/`noteHref` (flat routing), `noteSlugIndex()` (basename → slug, Obsidian shortest-path, unique vault-wide), `resolveWikiLink()`, `scanWikiLinks()` (skips code fences), `validateWikiLinks()`, `assertUniqueSlugs()` (collision throws naming both IDs), and the `SECTIONS` record (section descriptions + display order — vault folders need **no** per-directory `index.md`)
-- `posts.ts` — publication rules: `published()` filters `draft: true` and sorts newest-first; used by home, blog index, blog routes, and RSS
+- `notes.ts`: note identity and wikilinks. Contains `slugOf`/`noteHref` (flat routing), `noteSlugIndex()` (basename → slug, Obsidian shortest-path, unique vault-wide), `resolveWikiLink()`, `scanWikiLinks()` (skips code fences), `validateWikiLinks()`, `assertUniqueSlugs()` (collision throws naming both IDs), and the `SECTIONS` record (section descriptions + display order, so vault folders **don't** need a per-directory `index.md`)
+- `posts.ts`: publication rules. `published()` filters `draft: true` and sorts newest-first. The blog index, blog routes, RSS, search and the home page use it
+- `fosskar.ts`: `tokenize()` for showing `fosskar.nix` on the home page, `linkFor()` (paths, urls, mail and matrix ids to hrefs), `settingTypes` and `checkSetting()` for `website.settings`, and `suggest()` with `didYouMean()` for the 404 page
+- `site-data.ts`: typed access to the generated `site-data.json` and `SITE_STORE_PATH`
+- `search.ts`: the item list behind the `⌘K` dialog (contact entries come from `fosskar.nix`), and `pageNames()` for every page by name. `src/pages/search.json.ts` writes the list to `/search.json`, which the dialog fetches when it first opens
 
-Build-time validation fails fast: `astro.config.ts` calls `validateWikiLinks()` and `noteSlugIndex()` at **config load**, and `wiki/[...slug].astro`'s `getStaticPaths` calls `assertUniqueSlugs()` — broken wikilinks or duplicate basenames fail the build, never ship.
+Build-time validation fails fast: `astro.config.ts` calls `validateWikiLinks()` and `noteSlugIndex()` at **config load**, and `wiki/[...slug].astro`'s `getStaticPaths` calls `assertUniqueSlugs()`. Broken wikilinks or duplicate basenames fail the build, so they never reach the deployed site.
 
-Wikilinks `[[basename|title]]` resolve via `remark-wiki-link` (configured in `site/astro.config.ts`) to `/wiki/<basename>/`.
+Wikilinks `[[basename|title]]` resolve via `remark-wiki-link` to `/wiki/<basename>/`. It runs on the `unified` processor from `@astrojs/markdown-remark` (`markdown.processor` in `site/astro.config.ts`). Astro 7's default processor doesn't run remark plugins.
 
 ## Key Directories
 
-- `wiki/` — Obsidian vault; topic dirs `nixos/` (+ `nixos/security/`), `kubernetes/`, `homelab/`, `security/yubikey/`, `gaming/`
-- `blog/`, `projects/` — content collections
-- `site/` — Astro app: `src/pages/`, `src/lib/` (domain logic + tests), `src/components/` (`ArticleHead.astro`, `EntryCard.astro`, `Social.astro`), `src/layouts/Layout.astro`, `src/content.config.ts`, `astro.config.ts`
-- `nix/` — flake modules: `package.nix` (site build), `devshell.nix`, `effects.nix` (Hercules CI), `treefmt.nix`, `checks.nix`
+- `wiki/`: Obsidian vault with topic dirs `nixos/` (+ `nixos/security/`), `kubernetes/`, `homelab/`, `security/yubikey/`, `gaming/`
+- `blog/`, `projects/`: content collections
+- `site/`: Astro app with `src/pages/`, `src/lib/` (domain logic + tests), `src/components/` (`AboutHead.astro`, `AboutWork.astro`, `ArticleHead.astro`, `Cv.astro`, `EntryCard.astro`, `Search.astro`, `WikiTree.astro`), `src/layouts/Layout.astro`, `src/content.config.ts`, `astro.config.ts`
+- `nix/`: flake modules `package.nix` (site build), `devshell.nix`, `effects.nix` (nixbot effects), `treefmt.nix`, `checks.nix`
 
 ## Development Commands
 
@@ -40,51 +55,53 @@ nix fmt                     # treefmt: nixfmt + prettier
 nix flake check             # builds packages + devshells (does NOT run vitest)
 ```
 
-Dependency updates: `npm update --package-lock-only` (node_modules is read-only; see README.md), then re-enter the devshell.
+Dependency updates: `npm update --package-lock-only` (node_modules is read-only, as README.md explains), then re-enter the devshell.
 
 ## Code Conventions & Common Patterns
 
 Wiki note conventions (apply when writing or editing notes under `wiki/`):
 
-- lowercase terse prose, proper nouns keep case (NixOS, OPNsense, Steam); reason-first openings — why this shape, not a config dump
-- `type` implies shape: `guide` = context → steps → verify; `troubleshooting` = symptom → cause → fix; `reference` = annotated list
+- lowercase terse prose. Proper nouns keep case (NixOS, OPNsense, Steam). Open with the reason (why this setup), not a config dump
+- `type` implies shape. `guide` = context → steps → verify. `troubleshooting` = symptom → cause → fix. `reference` = annotated list
 - every guide ends with `## verify`: one command plus the expected result
-- anchor every config block with a comment naming its file/chart/module/UI path; `(this setup)` marks concrete lab values; pin versions only when actually known and link the upstream issue for workarounds
-- placeholders use `<angle-brackets>`; Steam's literal `%command%` is not a placeholder
-- cross-link related notes in a reciprocal `## related` footer of `- [[basename|title]]` bullets; external links go in `## references`
-- `date` means last verified, not created; bump it only when a note is actually re-tested
-- headings h2/h3 only (feeds the TOC depth filter); per-note TOC opt-out via `enableToc: false`
+- anchor every config block with a comment that states its file/chart/module/UI path. `(this setup)` marks concrete lab values. Pin versions only when actually known and link the upstream issue for workarounds
+- placeholders use `<angle-brackets>`. Steam's literal `%command%` is not a placeholder
+- cross-link related notes in a reciprocal `## related` footer of `- [[basename|title]]` bullets. External links go in `## references`
+- `date` means last verified, not created. Bump it only when a note is actually re-tested
+- headings h2/h3 only (the TOC depth filter reads them). Per-note TOC opt-out via `enableToc: false`
 
 Site code:
 
-- TypeScript strict (`astro/tsconfigs/strict`); all config is `.ts` including `astro.config.ts`
-- domain logic belongs in `site/src/lib/` with colocated vitest tests (`notes.test.ts`, `posts.test.ts`) — pages stay thin, calling `published()`, `noteHref()`, etc. rather than inlining rules
-- shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings) — don't re-inline card/header markup in pages
-- styling is hand-written CSS: global theme (CSS variables, dark default, light via `prefers-color-scheme`) in `Layout.astro` `<style is:global>`, page/component rules in scoped `<style>` blocks — no framework, no integrations beyond sitemap + RSS
-- frontmatter schemas are zod in `content.config.ts`; extend the schema before using a new field
+- TypeScript strict (`astro/tsconfigs/strict`). All config is `.ts` including `astro.config.ts`
+- domain logic belongs in `site/src/lib/`. Pages don't inline rules: they call `published()`, `noteHref()`, etc.
+- shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings). Don't re-inline card/header markup in pages
+- styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `website.settings` in `fosskar.nix` sets `data-theme`, `data-typing`, `data-hints` and `--font-size` on `<html>`. `colorScheme = "system"` follows `prefers-color-scheme`. `fontSize` only sizes the home page; the other pages stay at 16px. `site-data.ts` flattens nested settings to dotted names (`typing.enable`), the way the file writes them. Values a visitor changes on the home page are kept in `localStorage` under `settings`, and the inline script in `Layout.astro` applies them before the first paint. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the `fosskar.nix` source on the home page, the path line, the footer store path) avoids template whitespace and needs global selectors under a unique class or element (`.home`, `.crumbs`, `footer`), because scoped styles do not reach it. Print always uses the light palette. Surfaces are flat, without blur or glow. The only gradients are the home page fades at the window edges. The palette is `pi-jade` from nixfiles `modules/flake-parts/themes.nix`. On the home page the kind of value picks the colour: plain strings green (`--string`), site paths coral (`--path`), external links blue (`--ext`), settings yellow (`--set`). Fonts are Inter and Commit Mono 500 from `@fontsource`, imported in `Layout.astro` instead of loaded from other hosts. The site doesn't use a framework or any integrations beyond sitemap + RSS
+- frontmatter schemas are zod in `content.config.ts`. Extend the schema before using a new field
 
 ## Important Files
 
-- `site/src/content.config.ts` — collection loaders + schemas (source of truth for frontmatter)
-- `site/src/lib/notes.ts` — slug/wikilink/section logic incl. `SECTIONS`; touch this for anything routing- or link-related
-- `site/src/lib/posts.ts` — blog publication rules
-- `site/astro.config.ts` — site URL, wikilink resolver, shiki dual themes, cache relocation, build-time wikilink validation
-- `site/src/layouts/Layout.astro` — nav, global CSS theme
-- `CONTEXT.md` — domain glossary
-- `nix/package.nix` — **trap**: content dirs are whitelisted in a `lib.fileset` union; a new repo-root content dir MUST be added there or `nix build` silently drops it
-- `nix/effects.nix` — Hercules CI: daily `update-flake-inputs` effect (05:00), commits as `fosskar[bot]` via GitToken app secret; no deploy effect in this repo
+- `site/src/content.config.ts`: collection loaders + schemas (source of truth for frontmatter)
+- `site/src/lib/notes.ts`: slug/wikilink/section logic incl. `SECTIONS`. Touch this for anything routing- or link-related
+- `site/src/lib/posts.ts`: blog publication rules
+- `site/astro.config.ts`: site URL, wikilink resolver, shiki dual themes, cache relocation, build-time wikilink validation
+- `site/src/layouts/Layout.astro`: path line (subpages have no header, only `~/fosskar/<segments>` as links), one-line footer, search dialog, global CSS theme
+- `CONTEXT.md`: domain glossary
+- `nix/package.nix`: site build, cv pdfs, the final `website` package. **Trap**: content dirs are whitelisted in a `lib.fileset` union. A new repo-root content dir MUST be added there or `nix build` silently drops it
+- `nix/effects.nix`: daily `update-flake-inputs` effect (21:00) through nixbot's `herculesCI` output, which pushes via the GitToken secret. This repo doesn't have a deploy effect
 
 ## Runtime/Tooling Preferences
 
-- **npm** with committed `package-lock.json`; nix builds are hash-free via `pkgs.importNpmLock` (no npmDeps hash to refresh)
-- node from the devshell (nodejs 24 — npm ≥ 11.10 enforces `site/.npmrc` `min-release-age=3`, a 3-day supply-chain cooldown when changing deps); `package.json` engines require node ≥ 22.12
-- `site/node_modules` is a **read-only nix store symlink** — never `npm install` into it, and never let it get git-tracked (flake source then ships a broken symlink and astro prerender fails); astro/vite caches are relocated to `site/.cache/` for this reason
-- formatting via `nix fmt` (treefmt: nixfmt + prettier with `embeddedLanguageFormatting = "off"` so markdown code fences stay untouched); markdownlint-cli2 and marksman available in the devshell
-- VCS is plain git (`main`, origin = github.com/fosskar/website); commit messages are `<area>: <description>` lowercase (`site:`, `wiki:`, `nix:`, `docs:`); no GitHub Actions — CI is Hercules effects only
+- **npm** with committed `package-lock.json`. Nix builds are hash-free via `pkgs.importNpmLock` (no npmDeps hash to refresh)
+- node from the devshell (nodejs 24). npm ≥ 11.10 enforces `site/.npmrc` `min-release-age=3`, a 3-day supply-chain cooldown when changing deps. `package.json` engines require node ≥ 22.12
+- `site/node_modules` is a **read-only nix store symlink**. Never `npm install` into it, and never let it get git-tracked (the flake source would then contain a broken symlink and astro prerender fails). The astro/vite caches are relocated to `site/.cache/` for this reason
+- the flake only sees files git tracks. New files are invisible to `nix build` and `nix develop` until tracked. In a jj workspace without a commit, use `nix build "path:$PWD"`
+- formatting via `nix fmt` (treefmt: nixfmt + prettier with `embeddedLanguageFormatting = "off"` so prettier doesn't reformat markdown code fences). markdownlint-cli2 and marksman are available in the devshell
+- VCS is plain git (`main`, origin = github.com/fosskar/website). Commit messages are `<area>: <description>` lowercase (`site:`, `wiki:`, `nix:`, `docs:`). The repo doesn't use GitHub Actions. CI is nixbot only
 
 ## Testing & QA
 
-- `cd site && npm test` — vitest unit tests for `src/lib/` (wikilink resolution, slug collision, draft filtering); run after touching `lib/`; **not** wired into `nix flake check`
-- `nix flake check` / `nix build` — the build fails on schema violations, duplicate wiki slugs, unresolved wikilinks, and broken frontmatter
-- after content edits, `npm run build` in `site/` is the fast check; inspect `site/dist/` output for rendered wikilinks when touching `## related` footers
+- write tests only for logic whose failure is hard to see: wikilink resolution, the tokenizer, type checks. Removing an option, styling, layout, data lists and one-line helpers get no test and no test-first. Check those by building and looking at the page. A test that restates its code adds upkeep without catching anything
+- `cd site && npm test`: vitest unit tests for `src/lib/` (wikilink resolution, code fences, slug collision, draft filtering, the `fosskar.nix` tokenizer and settings errors). Run them after touching `lib/`. They are **not** part of `nix flake check`
+- `nix flake check` / `nix build`: the build fails on schema violations, duplicate wiki slugs, unresolved wikilinks, and broken frontmatter
+- after content edits, `npm run build` in `site/` is the fast check. Inspect `site/dist/` output for rendered wikilinks when touching `## related` footers
 - nix edits: run `nix fmt` before committing

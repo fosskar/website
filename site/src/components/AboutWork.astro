@@ -1,0 +1,168 @@
+---
+// what i do and my projects, below the about text
+import { getCollection } from "astro:content";
+
+interface Props {
+  lang: "en" | "de";
+}
+const { lang } = Astro.props;
+
+const t = {
+  en: {
+    focus: "what i love and what i do",
+    projects: "projects",
+    items: [
+      {
+        title: "nix & nixos",
+        text: "my whole fleet runs from one flake, from workstations to the router.",
+        points: ["clan-core and flake-parts", "generated secrets with clan vars", "ephemeral roots on zfs"],
+      },
+      {
+        title: "kubernetes & gitops",
+        text: "at work i run on-prem kubernetes clusters and change them through git.",
+        points: ["talos and talosctl", "gitops with argocd", "ci/cd with gitlab ci"],
+      },
+      {
+        title: "nix ci & builds",
+        text: "ci builds every flake i maintain and keeps its inputs up to date.",
+        points: ["nix ci with nixbot", "binary cache with harmonia", "remote builders, automated input updates"],
+      },
+      {
+        title: "self-hosting",
+        text: "a zfs-based home server and a vps on hetzner run the services i rely on.",
+        points: [
+          "zfs and other storage setups",
+          "backups with borg",
+          "mesh and p2p networking, with netbird for remote access through the vps",
+          "monitoring with grafana, victoriametrics, gatus and beszel",
+        ],
+      },
+      {
+        title: "local models & ai tooling",
+        text: "i run and test local models in my homelab and use them day to day.",
+        points: [
+          "llms, embedding and decision models",
+          "served with llama.cpp and vllm",
+          "regular benchmarks",
+          "own agent tooling: extensions, skills, microvm sandboxes",
+        ],
+      },
+    ],
+    descriptions: {} as Record<string, string>,
+  },
+  de: {
+    focus: "was ich gern mache und was ich mache",
+    projects: "projekte",
+    items: [
+      {
+        title: "nix & nixos",
+        text: "alle meine rechner laufen aus einem flake, von der workstation bis zum router.",
+        points: ["clan-core und flake-parts", "generierte secrets mit clan vars", "flüchtige root-dateisysteme auf zfs"],
+      },
+      {
+        title: "kubernetes & gitops",
+        text: "beruflich betreibe ich on-prem-kubernetes-cluster und ändere sie über git.",
+        points: ["talos und talosctl", "gitops mit argocd", "ci/cd mit gitlab ci"],
+      },
+      {
+        title: "nix ci & builds",
+        text: "ci baut jeden flake, den ich pflege, und hält seine inputs aktuell.",
+        points: ["nix ci mit nixbot", "binary cache mit harmonia", "remote builder, automatische input-updates"],
+      },
+      {
+        title: "self-hosting",
+        text: "ein heimserver auf zfs-basis und ein vps bei hetzner betreiben die dienste, auf die ich mich verlasse.",
+        points: [
+          "zfs und andere speicher-setups",
+          "backups mit borg",
+          "mesh- und p2p-netzwerke, mit netbird für den fernzugriff über den vps",
+          "monitoring mit grafana, victoriametrics, gatus und beszel",
+        ],
+      },
+      {
+        title: "lokale modelle & ki-werkzeuge",
+        text: "ich betreibe und teste lokale modelle in meinem homelab und nutze sie im alltag.",
+        points: [
+          "llms, embedding- und decision-modelle",
+          "betrieben mit llama.cpp und vllm",
+          "regelmäßige benchmarks",
+          "eigene agent-werkzeuge: extensions, skills, microvm-sandboxes",
+        ],
+      },
+    ],
+    descriptions: {
+      nixfiles: "nixos- und clan-core-konfiguration für alle meine rechner",
+      ssync: "p2p-synchronisierung von coding-agent-sessions zwischen rechnern",
+      "pi-pack": "skills, extensions und prompts für den coding agent pi",
+      fencr: "firecracker-sandboxes für ki-agenten auf nixos",
+      "harbor-labeler": "markiert laufende images in harbor für die retention",
+      gitops: "flux-basiertes gitops-repository für einen talos-testcluster",
+    } as Record<string, string>,
+  },
+}[lang];
+
+const projects = (await getCollection("projects")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<h2>{t.focus}</h2>
+<dl class="focus">
+  {
+    t.items.map((item) => (
+      <>
+        <dt>{item.title}</dt>
+        <dd>
+          {item.text}
+          <ul>
+            {item.points.map((p) => (
+              <li>{p}</li>
+            ))}
+          </ul>
+        </dd>
+      </>
+    ))
+  }
+</dl>
+
+<h2 id="projects">{t.projects}</h2>
+<ul class="projects">
+  {
+    projects.map((p) => (
+      <li>
+        <a href={p.data.repo ?? p.data.url}>{p.data.title}</a>
+        <span class="muted"> · {t.descriptions[p.id] ?? p.data.description}</span>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .focus {
+    margin: 0;
+  }
+  .focus dt {
+    margin-top: 1.4rem;
+    color: var(--strong);
+    font: 500 0.98rem var(--mono);
+  }
+  .focus dd {
+    margin: 0.2rem 0 0;
+  }
+  .focus ul {
+    margin: 0.3rem 0 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .focus li::marker {
+    color: var(--accent);
+  }
+  .projects {
+    list-style: none;
+    padding: 0;
+  }
+  .projects a {
+    font-family: var(--mono);
+  }
+</style>

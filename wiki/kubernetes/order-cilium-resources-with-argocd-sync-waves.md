@@ -51,7 +51,7 @@ hubble:
 argocd app get <cilium-app>
 ```
 
-expected: `Sync Status: Synced` and `Health Status: Healthy` on the first sync, without manual retries — the ippool, ingress service, and hubble resources come up in wave order instead of failing on missing crds.
+expected: `Sync Status: Synced` and `Health Status: Healthy` on the first sync, without manual retries. the ippool, ingress service, and hubble resources come up in wave order instead of failing on missing crds.
 
 ## related
 

@@ -1,84 +1,509 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Social from "../components/Social.astro";
-import EntryCard from "../components/EntryCard.astro";
 import { getCollection } from "astro:content";
-import { published, postHref } from "../lib/posts";
-import { noteHref } from "../lib/notes";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { published } from "../lib/posts";
+import { pageNames } from "../lib/search";
+import { linkFor, tokenize, type SettingName } from "../lib/fosskar";
+import { fosskar, settings } from "../lib/site-data";
 
-const posts = published(await getCollection("blog")).slice(0, 3);
-const notes = (await getCollection("wiki"))
-  .sort((a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0))
-  .slice(0, 5);
+// the page shows the file the site's data is evaluated from
+const source = readFileSync(resolve(process.cwd(), "../fosskar.nix"), "utf8").trimEnd();
+const lines = tokenize(source);
+
+const posts = published(await getCollection("blog"));
+const notes = await getCollection("wiki");
+const sitePaths = new Set(Object.values(pageNames({ posts, notes })));
+// a project's hint is its description from projects/
+const projectInfo = new Map(
+  (await getCollection("projects")).map((p) => [p.data.repo, p.data.description]),
+);
+// what each entry in likes stands for, shown on hover like the project hints
+const likeInfo: Record<string, string> = {
+  nix: "nixos on all my machines, from one flake: nixfiles",
+  "self-hosting": "a homelab of nixos machines running my own services",
+  "local llms": "llama.cpp and vllm in my homelab, with regular benchmarks",
+  "fixing things properly": "when something bugs me, i fix the cause instead of working around it",
+};
+
+const setting = (path: string) =>
+  path.startsWith("website.settings.")
+    ? (path.slice("website.settings.".length) as SettingName)
+    : undefined;
+
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// the typing animation gives each line a share of 2s by its length
+const typingMs = 2000;
+const total = lines.reduce((n, l) => n + l.reduce((m, t) => m + t.text.length, 0), 0);
+const typingStyle = (n: number) =>
+  `--t: ${Math.round((n / total) * typingMs)}ms; --n: ${n}`;
+
+// a list entry links to what nix evaluates it to, not to its text: the
+// projects list holds "nixfiles", nix makes it "github:fosskar/nixfiles"
+const listPos = new Map<string, number>();
+const evaluated = (path: string, literal: string) => {
+  const list = path
+    .split(".")
+    .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], fosskar);
+  if (!Array.isArray(list) || literal.includes("${")) return literal;
+  const i = listPos.get(path) ?? 0;
+  listPos.set(path, i + 1);
+  return String(list[i]);
+};
+
+// built as a string: a template inside <pre> would leak its own indentation
+const html = lines
+  .map((tokens) => {
+    let length = tokens.reduce((n, t) => n + t.text.length, 0);
+    let editable: string | undefined;
+    // what a click on this line's value does, shown on hover at the line end
+    let hint: string | undefined;
+    const code = tokens
+      .map((t) => {
+        const text = esc(t.text);
+        if (t.kind === "comment") {
+          if (t.text !== "# fosskar.nix") return `<span class="c">${text}</span>`;
+          // the revert button sits in this line, so showing it moves nothing
+          return `<span class="c">${text}<span class="modified" hidden> (modified) <button class="restore" id="restore" type="button" title="revert to fosskar.nix" aria-label="revert to fosskar.nix"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6.5A5 5 0 1 1 3 9.5" /><path d="M3.5 2.5v4h4" /></svg></button></span></span>`;
+        }
+        if (t.kind === "attr") return `<span class="k">${text}</span>`;
+        const name = t.path && setting(t.path);
+        if (name && (t.kind === "string" || t.kind === "number" || t.kind === "bool")) {
+          editable = t.path;
+          const attrs = `data-setting="${name}" data-key="${t.path}" aria-label="${t.path}"`;
+          if (t.kind === "number") {
+            hint = "click and type a number";
+            return `<span class="set"><span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" ${attrs}>${text}</span></span>`;
+          }
+          // the script fills in what a click switches to
+          hint = "";
+          if (t.kind === "bool")
+            return `<span class="set"><button class="v" type="button" ${attrs}>${text}</button></span>`;
+          return `<span class="set">"<button class="v" type="button" ${attrs}>${esc(t.text.slice(1, -1))}</button>"</span>`;
+        }
+        if (t.kind === "string") {
+          const value = t.text.slice(1, -1);
+          const href = linkFor(t.path ? evaluated(t.path, value) : value);
+          if (href && sitePaths.has(href)) {
+            hint = `open ${value}`;
+            return `<a class="path" href="${esc(href)}">${text}</a>`;
+          }
+          if (href) {
+            length += 1;
+            hint =
+              projectInfo.get(href) ??
+              `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
+            return `<a class="ext" href="${esc(href)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
+          }
+          if (t.path === "likes") hint = likeInfo[value];
+          return `<span class="s">${text}</span>`;
+        }
+        if (t.kind === "number") return `<span class="s">${text}</span>`;
+        if (t.kind === "punct") return `<span class="p">${text}</span>`;
+        return text;
+      })
+      .join("");
+    let line = length ? `<span class="line" style="${typingStyle(length)}">${code}</span>` : code;
+    if (hint !== undefined)
+      line += `<span class="hint" aria-hidden="true">  # ${esc(hint)}</span>`;
+    if (!editable) return line + "\n";
+    // the error for a value shows under its line, indented like the line; it
+    // follows the line break, which would otherwise leave a blank line after it
+    const indent = tokens[0]?.kind === "text" ? tokens[0].text.length : 0;
+    return `${line}\n<span class="err" data-err="${editable}" style="padding-left: ${indent}ch" role="alert" hidden></span>`;
+  })
+  .join("")
+  .trimEnd();
 ---
 
-<Layout title="fosskar" description="half blog, half wiki — notes on kubernetes, homelab, and nixos">
-  <section class="hero">
-    <h1>hi, i’m fosskar</h1>
-    <p class="tagline">
-      this site is half blog, half wiki about kubernetes, homelab, and nixos:
-      most pages start from a real problem, and
-      the point is to keep the useful part — what worked, why it worked, and
-      what tradeoff was being made.
-    </p>
-    <Social buttons />
-  </section>
+<Layout
+  title={`${fosskar.name} · fosskar`}
+  description={`${fosskar.name} (fosskar): ${fosskar.role} in ${fosskar.location}. nix, nixos, kubernetes and gitops.`}
+  wide
+>
+  <div class="home">
+    <h1 class="visually-hidden">{fosskar.name} (fosskar), {fosskar.role}</h1>
+    <div class="fade top" aria-hidden="true"></div>
+    <div class="fade bottom on" aria-hidden="true"></div>
+    <script is:inline>
+      // types the file when the site is opened fresh: not on reload, back or
+      // forward, or when coming from another page of this site
+      const nav = performance.getEntriesByType("navigation")[0];
+      const fromHere =
+        document.referrer && new URL(document.referrer).origin === location.origin;
+      if (
+        document.documentElement.dataset.typing !== "false" &&
+        nav?.type === "navigate" &&
+        !fromHere &&
+        !matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+        document.currentScript.parentElement.classList.add("typing");
+    </script>
+    <pre
+      class="nix"
+      id="nix"
+      data-defaults={JSON.stringify(settings)}><code set:html={html} /></pre>
+  </div>
 
-  <section>
-    <div class="section-head">
-      <h2>latest posts</h2>
-      <a class="view-all" href="/blog/">view all →</a>
-    </div>
-    {posts.length === 0 && <p class="muted">nothing here yet.</p>}
-    <div class="stack">
-      {
-        posts.map((post) => (
-          <EntryCard
-            href={postHref(post.id)}
-            title={post.data.title}
-            description={post.data.description}
-            date={post.data.date}
-          />
-        ))
-      }
-    </div>
-  </section>
+<script>
+  import {
+    checkSetting,
+    settingTypes,
+    type SettingName,
+    type Settings,
+  } from "../lib/fosskar";
 
-  <section>
-    <div class="section-head">
-      <h2>recent wiki notes</h2>
-      <a class="view-all" href="/wiki/">view all →</a>
-    </div>
-    {notes.length === 0 && <p class="muted">nothing here yet.</p>}
-    <div class="stack">
-      {
-        notes.map((note) => (
-          <EntryCard
-            href={noteHref(note.id)}
-            title={note.data.title}
-            date={note.data.date}
-            compact
-          />
-        ))
+  declare global {
+    interface Window {
+      applySettings(s: Settings): void;
+    }
+  }
+
+  const nix = document.getElementById("nix")!;
+
+  // fade the window edges while the page continues past them
+  const [fadeTop, fadeBottom] = document.querySelectorAll<HTMLElement>(".fade");
+  const edges = () => {
+    const end = document.documentElement.scrollHeight - innerHeight;
+    fadeTop!.classList.toggle("on", scrollY > 1);
+    fadeBottom!.classList.toggle("on", scrollY < end - 1);
+  };
+  addEventListener("scroll", edges, { passive: true });
+  // the page height also changes without a scroll: font size, web fonts
+  new ResizeObserver(edges).observe(document.body);
+  // the first state comes without a transition, so a reload doesn't flicker
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      fadeTop!.classList.add("ready");
+      fadeBottom!.classList.add("ready");
+    }),
+  );
+
+  // typing: lines type in order as they come into view, the first screen
+  // right away, the rest when scrolled to. a click or key press skips it
+  const home = nix.parentElement!;
+  if (home.classList.contains("typing")) {
+    let next = performance.now();
+    const seen = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const line = e.target as HTMLElement;
+        seen.unobserve(line);
+        const now = performance.now();
+        next = Math.max(next, now);
+        line.style.setProperty("--d", `${next - now}ms`);
+        next += parseFloat(line.style.getPropertyValue("--t"));
+        line.classList.add("go", "typed");
       }
-    </div>
-  </section>
+    });
+    nix.querySelectorAll(".line").forEach((l) => seen.observe(l));
+    // dropping the finished animation drops its clip; chromium can hold the
+    // last steps() frame one character short
+    nix.addEventListener("animationend", (e) =>
+      (e.target as HTMLElement).classList.remove("go"),
+    );
+    const done = () => {
+      home.classList.remove("typing");
+      seen.disconnect();
+    };
+    addEventListener("pointerdown", done, { once: true });
+    addEventListener("keydown", done, { once: true });
+  }
+  const restore = document.getElementById("restore")!;
+  const modified = nix.querySelector<HTMLElement>(".modified")!;
+  const defaults: Settings = JSON.parse(nix.dataset.defaults!);
+  // stored values come from older builds too; keep the ones that still type-check
+  const stored = JSON.parse(localStorage.getItem("settings") ?? "{}");
+  let current: Settings = { ...defaults };
+  for (const name of Object.keys(settingTypes) as SettingName[])
+    if (name in stored && !checkSetting(name, stored[name])) current[name] = stored[name];
+
+  function showError(key: string, message?: string) {
+    const el = nix.querySelector<HTMLElement>(`[data-err="${key}"]`)!;
+    el.hidden = !message;
+    const red = Object.assign(document.createElement("span"), {
+      className: "red",
+      textContent: "error:",
+    });
+    el.replaceChildren(...(message ? [red, " ", message] : []));
+  }
+
+  // only values that differ from fosskar.nix are stored
+  function save() {
+    const changed = Object.fromEntries(
+      Object.entries(current).filter(([k, v]) => v !== defaults[k as SettingName]),
+    );
+    const dirty = Object.keys(changed).length > 0;
+    modified.hidden = !dirty;
+    if (dirty) localStorage.setItem("settings", JSON.stringify(changed));
+    else localStorage.removeItem("settings");
+    window.applySettings(current);
+  }
+
+  function selectAll(el: HTMLElement) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+  }
+
+  // website.settings: a click steps through the allowed strings and
+  // booleans; the number
+  // is typed, or stepped with the arrow keys
+  const settings = [...nix.querySelectorAll<HTMLElement>("[data-setting]")];
+  const resets: (() => void)[] = [];
+  for (const el of settings) {
+    const name = el.dataset.setting as SettingName;
+    const type = settingTypes[name];
+    el.textContent = String(current[name]);
+    const values: readonly (string | boolean)[] | undefined =
+      "enum" in type ? type.enum : "bool" in type ? [true, false] : undefined;
+    if (values) {
+      const next = () => values[(values.indexOf(current[name] as string | boolean) + 1) % values.length]!;
+      const hint = el.closest(".line")!.nextElementSibling as HTMLElement;
+      const show = () => {
+        el.textContent = String(current[name]);
+        hint.textContent = `  # click: ${current[name]} → ${next()}`;
+      };
+      show();
+      el.addEventListener("click", () => {
+        current = { ...current, [name]: next() };
+        show();
+        save();
+      });
+      resets.push(show);
+      continue;
+    }
+    // only fontSize is left: a number with a range
+    const range = type as { min: number; max: number };
+    const commit = () => {
+      const raw = el.textContent!.trim();
+      const value = /^-?\d+$/.test(raw) ? Number(raw) : raw;
+      const error = checkSetting(name, value);
+      showError(el.dataset.key!, error);
+      if (error) return;
+      current = { ...current, [name]: value };
+      save();
+    };
+    el.addEventListener("focus", () => selectAll(el));
+    el.addEventListener("blur", commit);
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        el.blur();
+      } else if (e.key === "Escape") {
+        el.textContent = String(current[name]);
+        showError(el.dataset.key!);
+        el.blur();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const step = e.key === "ArrowUp" ? 1 : -1;
+        el.textContent = String(
+          Math.min(range.max, Math.max(range.min, Number(current[name]) + step)),
+        );
+        commit();
+        selectAll(el);
+      }
+    });
+  }
+  save();
+
+
+  restore.addEventListener("click", () => {
+    current = { ...defaults };
+    for (const el of settings) el.textContent = String(current[el.dataset.setting as SettingName]);
+    for (const show of resets) show();
+    for (const el of nix.querySelectorAll<HTMLElement>("[data-err]")) showError(el.dataset.err!);
+    save();
+  });
+</script>
 </Layout>
 
-<style>
-  .hero {
+<style is:global>
+  /* global: the expression's html is built as a string, which scoped styles
+     cannot reach; every selector stays under .home */
+  /* centered horizontally; top-aligned, so errors and the revert button
+     appearing below a line never move what's above it */
+  main:has(> .home) {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 1.5rem 0 1rem;
+    justify-content: center;
+    padding-top: 4rem;
+    /* the hints reach past the window edge; they mustn't add a scrollbar */
+    position: relative;
+    overflow-x: clip;
   }
-  .hero h1 {
-    margin: 1rem 0 0.25rem;
-  }
-  .tagline {
+  /* a fixed column, centred: the code sits left in it, and long hints
+     don't pull the code off-centre */
+  .home {
+    min-width: 0;
+    width: min(100%, 84ch);
+    font: 0.95rem/1.85 var(--mono);
     color: var(--muted);
-    max-width: 36rem;
-    margin: 0.5rem 0 1.25rem;
   }
+
+  .home .fade {
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* taller than the blank line between sets, so it always covers text */
+    height: clamp(7rem, 22vh, 12rem);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .home .fade.ready {
+    transition: opacity 0.2s;
+  }
+  .home .fade.on {
+    opacity: 1;
+  }
+  .home .fade.top {
+    top: 0;
+    background: linear-gradient(var(--bg) 10%, transparent);
+  }
+  .home .fade.bottom {
+    bottom: 0;
+    background: linear-gradient(transparent, var(--bg) 90%);
+  }
+  .home pre.nix {
+    margin: 0;
+    padding: 0 0 1rem;
+    background: none !important;
+    border: 0;
+    border-radius: 0;
+    font: inherit;
+  }
+  /* sideways scrolling only where lines don't fit; elsewhere the hints
+     would count towards the scroll width */
+  @media (max-width: 48rem) {
+    .home pre.nix {
+      overflow-x: auto;
+    }
+  }
+  /* each line stays hidden until the script starts it, then is uncovered
+     one character at a time. visibility, not a clip: a fully clipped line
+     never counts as in view for the IntersectionObserver */
+  .home.typing .line:not(.typed) {
+    visibility: hidden;
+  }
+  .home.typing .line.go {
+    animation: type var(--t) steps(var(--n), end) var(--d) both;
+  }
+  @keyframes type {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+  .home .c {
+    color: var(--dim);
+  }
+  .home .k {
+    color: var(--strong);
+  }
+  .home .s {
+    color: var(--string);
+  }
+  .home .p {
+    color: var(--dim);
+  }
+  /* the kind of value decides its colour; no underlines */
+  .home .path {
+    color: var(--path);
+  }
+  .home .ext {
+    color: var(--ext);
+  }
+  .home .set {
+    color: var(--set);
+  }
+  .home :is(.path, .ext) {
+    text-decoration: none;
+    border-radius: 3px;
+  }
+  .home .arrow {
+    font-size: 0.8em;
+    margin-left: 0.1em;
+  }
+  /* a button is an inline block: with the code's line-height it would be as
+     tall as the whole line */
+  .home button.v {
+    font: inherit;
+    line-height: normal;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .home .v[contenteditable="plaintext-only"] {
+    outline: none;
+    border-radius: 3px;
+    cursor: text;
+  }
+  .home :is(.path, .ext, button.v, .v[contenteditable]):is(:hover, :focus-visible),
+  .home .v:focus {
+    background: color-mix(in srgb, currentColor 16%, transparent);
+  }
+  /* what a click does, as a comment at the line end. out of the flow, so
+     long hints don't widen the centered block */
+  .home .hint {
+    position: absolute;
+    white-space: pre;
+    color: var(--dim);
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  /* keyboard focus only: a clicked link keeps focus, and going back to the
+     page restores it */
+  :root[data-hints="false"] .home .hint {
+    display: none;
+  }
+  .home .line:is(:hover, :has(:focus-visible)) + .hint {
+    opacity: 1;
+  }
+  /* wraps inside the file's width instead of widening the centered block */
+  .home .err {
+    display: block;
+    contain: inline-size;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+  .home .red {
+    color: var(--red);
+  }
+  .home .modified {
+    color: var(--accent);
+  }
+  .home .restore {
+    display: inline-flex;
+    vertical-align: -0.35em;
+    margin: -0.3em 0;
+    padding: 0.3em;
+    border-radius: 4px;
+    background: none;
+    border: 0;
+    color: var(--dim);
+    cursor: pointer;
+  }
+  .home .restore svg {
+    width: 1.4em;
+    height: 1.4em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .home .restore:hover {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+
 </style>

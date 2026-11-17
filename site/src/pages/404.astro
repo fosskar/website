@@ -1,36 +1,68 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+import { published } from "../lib/posts";
+import { pageNames } from "../lib/search";
+
+// every page a mistyped url could have meant
+const candidates = pageNames({
+  posts: published(await getCollection("blog")),
+  notes: await getCollection("wiki"),
+});
 ---
 
-<Layout title="404 — fosskar">
-  <div class="wrap">
-    <div class="card lost">
-      <h1>404</h1>
-      <p>
-        this page does not exist. try the <a href="/wiki/">wiki</a> or <a href="/">home</a>.
-      </p>
-    </div>
-  </div>
+<Layout title="404 · fosskar" noindex>
+  <h1 class="visually-hidden">page not found</h1>
+  <pre class="err" id="err"><span class="red">error:</span> attribute '<span class="k" id="attr">this-page</span>' missing
+
+       <span id="hint">Did you mean one of <a href="/">home</a>, <a href="/blog/">blog</a> or <a href="/wiki/">wiki</a>?</span></pre>
+  <script
+    type="application/json"
+    id="candidates"
+    set:html={JSON.stringify(candidates)}
+  />
+
+<script>
+  import { didYouMean, suggest } from "../lib/fosskar";
+
+  // the missing attribute is the last part of the requested path
+  const candidates: Record<string, string> = JSON.parse(
+    document.getElementById("candidates")!.textContent!,
+  );
+  const parts = location.pathname.split("/").filter(Boolean);
+  const last = parts.at(-1) ?? "";
+  // the url is whatever the visitor typed, including broken escapes
+  let name = last;
+  try {
+    name = decodeURIComponent(last);
+  } catch {}
+  name = name.replace(/\.html$/, "");
+  if (name) {
+    document.getElementById("attr")!.textContent = name;
+    const hits = suggest(name, Object.keys(candidates));
+    if (hits.length)
+      document.getElementById("hint")!.replaceChildren(...didYouMean(hits, candidates));
+  }
+</script>
 </Layout>
 
 <style>
-  .wrap {
-    display: flex;
-    justify-content: center;
-    padding: 4rem 0;
+  .err {
+    margin: 4rem 0;
+    padding: 0;
+    background: none !important;
+    border: 0;
+    white-space: pre-wrap;
+    font: 1rem/1.85 var(--mono);
+    color: var(--text);
   }
-  .lost {
-    max-width: 24rem;
-    text-align: center;
-    padding: 2rem 2.5rem;
+  .red {
+    color: var(--red);
   }
-  .lost h1 {
-    font-size: 3rem;
-    margin: 0 0 0.5rem;
+  .k {
+    color: var(--strong);
+  }
+  .err a {
     color: var(--accent);
-  }
-  .lost p {
-    color: var(--muted);
-    margin: 0;
   }
 </style>

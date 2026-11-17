@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+# the cv pdfs carry the full name and can't hold a noindex tag; the cv pages
+# carry one, so crawlers must be allowed to read them
+Disallow: /cv/cv.pdf
+Disallow: /cv/de/lebenslauf.pdf
 
-Sitemap: https://bliki.fosskar.eu/sitemap-index.xml
+Sitemap: https://simon.fosskar.eu/sitemap-index.xml

@@ -1,16 +1,15 @@
 ---
-// entry card for post/note listings; compact renders title and date on one row
+// entry card for post listings
 interface Props {
   href: string;
   title: string;
   description?: string;
   date?: Date;
-  compact?: boolean;
 }
-const { href, title, description, date, compact = false } = Astro.props;
+const { href, title, description, date } = Astro.props;
 ---
 
-<a class:list={["card", "entry", { compact }]} href={href}>
+<a class="card entry" href={href}>
   <span class="entry-title">{title}</span>
   {description && <span class="entry-desc">{description}</span>}
   {
@@ -44,19 +43,5 @@ const { href, title, description, date, compact = false } = Astro.props;
   .entry .meta {
     margin: 0;
     font-variant-numeric: tabular-nums;
-  }
-  .entry.compact {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    padding: 0.75rem 1.25rem;
-  }
-  .entry.compact .entry-title {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .entry.compact .meta {
-    flex-shrink: 0;
   }
 </style>

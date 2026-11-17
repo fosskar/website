@@ -11,7 +11,7 @@ ingress is reachable by ip but not by name from the home network.
 
 ## cause
 
-usually not kubernetes. it is dns between subnets: clients ask the home router, and the home router does not know the names that live behind the second router.
+usually not kubernetes. it is dns between subnets: clients ask the home router, and the home router does not know the names hosted behind the second router.
 
 setup shape:
 
@@ -60,7 +60,7 @@ three workable patterns. answering directly on the home router ended up being th
 address=/<local-domain>/<ingress-ip>
 ```
 
-the most reliable option here. it cuts out cross-router forwarding and still gives wildcard-style resolution for anything under the domain. with a shared cilium ingress ip, this one line covers every hostname; ingress routes by hostname after the traffic arrives.
+the most reliable option here. it cuts out cross-router forwarding, and with a shared cilium ingress ip this one line gives wildcard-style resolution for the whole domain. ingress then routes each request by hostname.
 
 ### forward a whole domain to another dns server
 

@@ -5,7 +5,7 @@ date: 2026-02-26
 type: guide
 ---
 
-one LLDAP directory can give Samba shares consistent linux users, groups, and home paths, so share ownership and `[homes]` follow the directory. it cannot give them a shared password: SMB passwords stay in Samba's own `tdbsam`. this note keeps those two halves apart.
+one LLDAP directory can give Samba shares consistent linux users, groups, and home paths, so share ownership and `[homes]` follow the directory. it cannot give them a shared password: SMB passwords are stored in Samba's own `tdbsam`. this note keeps those two halves apart.
 
 ## model
 
@@ -17,11 +17,11 @@ lldap custom attributes -> sssd nss -> linux uid/gid/home/shell -> samba file ac
 
 LLDAP stores the POSIX identity data. SSSD exposes that data through NSS. Samba maps SMB sessions to the resulting linux user and group.
 
-`tdbsam` stays separate. LLDAP password verification and Samba SMB password verification use different secrets.
+`tdbsam` is not part of that chain. LLDAP password verification and Samba SMB password verification use different secrets.
 
 ## ldap attributes
 
-use the attribute names that SSSD is configured to read. default SSSD LDAP mappings use `uidNumber`, `gidNumber`, `homeDirectory`, and `loginShell`; the lowercase custom names below need a matching SSSD attribute mapping (see `sssd-ldap-attributes(5)` in references).
+use the attribute names that SSSD is configured to read. default SSSD LDAP mappings use `uidNumber`, `gidNumber`, `homeDirectory`, and `loginShell`. the lowercase custom names below only work if SSSD is configured to map each attribute to them (see `sssd-ldap-attributes(5)` in references).
 
 user attributes (this setup):
 
@@ -81,7 +81,7 @@ security.pam.services.samba.makeHomeDir = true;
 
 same mechanism elsewhere: enable `pam_mkhomedir` for the Samba PAM service.
 
-## why the LLDAP userPassword is not the SMB password
+## LLDAP userPassword and the SMB password
 
 Samba can use LDAP for SMB accounts. `passdb backend = ldapsam` stores Samba account data in LDAP instead of `tdbsam`.
 
@@ -94,7 +94,7 @@ that does not mean generic LDAP `userPassword` is enough:
 - LLDAP does not expose reusable password hashes
 - LLDAP documents Windows/Samba integration as WIP
 
-SSSD does not change that boundary. SSSD exposes identity through NSS/PAM; `smbd` still verifies SMB authentication through its passdb backend.
+SSSD does not change that boundary. SSSD exposes identity through NSS/PAM. `smbd` still verifies SMB authentication through its passdb backend.
 
 LLDAP + SSSD + `tdbsam` is identity sharing, not password sharing. single-password setups need Samba AD DC, external AD/kerberos with winbind, or `ldapsam` against an LDAP server that supports Samba schema and NT hash attributes.
 
@@ -131,7 +131,7 @@ uid/gid mismatch between LLDAP attributes and existing filesystem ownership.
 
 ## verify
 
-`getent` and `id` prove identity lookup; `pdbedit -L` proves SMB password state. linux identity:
+`getent` and `id` prove identity lookup. `pdbedit -L` proves SMB password state. linux identity:
 
 ```bash
 getent passwd <user>

@@ -34,8 +34,7 @@ const { title, description, date, datePrefix = "" } = Astro.props;
             <path d="M3 10h18" />
           </svg>
           <time datetime={date.toISOString().slice(0, 10)}>
-            {datePrefix}
-            {date.toISOString().slice(0, 10)}
+            {datePrefix && `${datePrefix} `}{date.toISOString().slice(0, 10)}
           </time>
         </span>
       )

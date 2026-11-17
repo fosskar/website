@@ -1,0 +1,688 @@
+---
+// the cv follows the site theme on screen. the nix `cv` package prints it
+// with the print styles below into one pdf per language, at most two pages
+// each. the name is letter outlines, not text: scrapers and search
+// engines cannot read the surname, which is also blurred on screen and
+// sharp in print.
+import { getCollection } from "astro:content";
+import firstName from "../assets/cv-firstname.svg?raw";
+import surname from "../assets/cv-name.svg?raw";
+import { linkFor } from "../lib/fosskar";
+import { fosskar } from "../lib/site-data";
+
+interface Props {
+  lang: "en" | "de";
+}
+const { lang } = Astro.props;
+
+interface Entry {
+  when: string;
+  title: string;
+  where?: string;
+  text?: string;
+  points?: string[];
+}
+
+const t = {
+  en: {
+    role: "devops engineer & sre · nix, kubernetes, gitops",
+    place: "hamburg, germany",
+    sections: {
+      profile: "profile",
+      experience: "experience",
+      projects: "open source",
+      certifications: "certifications",
+      skills: "skills",
+      education: "education",
+    },
+    profile:
+      "devops engineer and sre focused on nix/nixos, kubernetes and gitops. runs on-prem kubernetes with talos, argocd and gitlab ci at work, and a nixos fleet for self-hosting and local llm inference at home. before that, eleven years in machining, metrology and testing.",
+    experience: [
+      {
+        when: "2023 — now",
+        title: "devops engineer / sre",
+        where: "hamburg",
+        points: [
+          "operates around 20 on-prem kubernetes clusters in a team of four, split between devops and sre work",
+          "manages the cluster lifecycle with talos and talosctl",
+          "deploys workloads through gitops with argocd and helm",
+          "builds and maintains ci/cd pipelines in gitlab ci",
+          "automates configuration with ansible, manages secrets with vault",
+        ],
+      },
+      {
+        when: "2022 — 2023",
+        title: "devops engineer training",
+        where: "bootcamp, hamburg",
+        text: "five-month full-time program: linux, bash, docker, kubernetes, ci/cd with jenkins and gitlab, elastic stack, scrum.",
+      },
+      {
+        when: "2018 — 2019",
+        title: "test technician, metrology and testing",
+        where: "Festo, esslingen",
+      },
+      {
+        when: "2012 — 2014",
+        title: "industrialisation china and eu / measurement and test mechanic",
+        where: "thyssenkrupp Presta, esslingen",
+      },
+      {
+        when: "2007 — 2011",
+        title: "apprenticeship and work as machinist",
+        where: "Ewo Fluid Power, bissingen an der teck",
+      },
+    ] as Entry[],
+    projects: {
+      nixfiles: "nixos and clan-core config for my whole fleet",
+      ssync: "p2p sync of coding-agent sessions, in rust",
+      "pi-pack": "skills and extensions for the pi coding agent",
+      fencr: "firecracker sandboxes for ai agents on nixos",
+      "harbor-labeler": "labels in-use images in harbor for retention",
+    } as Record<string, string>,
+    projectsIntro:
+      "i regularly contribute to different open source projects. my own projects:",
+    certifications: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "devops engineer diploma", where: "bootcamp" },
+    ] as Entry[],
+    skills: [
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
+      ["platform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
+      ["operations", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
+      ["local ai", "llama.cpp, vllm, llms, embedding models, decision models"],
+      ["code", "nix, bash, rust, go"],
+      ["languages", "german (native), english (fluent)"],
+    ],
+    education: [
+      {
+        when: "2014 — 2017",
+        title: "abitur (university entrance qualification)",
+        where: "Kolping Bildungscampus, stuttgart",
+      },
+      {
+        when: "2007 — 2011",
+        title: "apprenticeship as machinist (zerspanungsmechaniker)",
+        where: "Ewo Fluid Power",
+      },
+    ] as Entry[],
+    pdf: { label: "download pdf", href: "/cv/cv.pdf", file: "cv-simon.pdf" },
+  },
+  de: {
+    role: "devops engineer & sre · nix, kubernetes, gitops",
+    place: "hamburg",
+    sections: {
+      profile: "profil",
+      experience: "berufserfahrung",
+      projects: "open source",
+      certifications: "zertifikate",
+      skills: "kenntnisse",
+      education: "ausbildung",
+    },
+    profile:
+      "devops engineer und sre mit schwerpunkt nix/nixos, kubernetes und gitops. betreibt beruflich on-prem-kubernetes mit talos, argocd und gitlab ci, privat mehrere nixos-rechner für self-hosting und lokale llm-inferenz. davor elf jahre in zerspanung, mess- und prüftechnik.",
+    experience: [
+      {
+        when: "2023 — heute",
+        title: "devops engineer / sre",
+        where: "hamburg",
+        points: [
+          "betrieb von rund 20 on-prem-kubernetes-clustern in einem vierköpfigen team, aufgeteilt auf devops- und sre-aufgaben",
+          "verwaltung des cluster-lebenszyklus mit talos und talosctl",
+          "deployment von workloads per gitops mit argocd und helm",
+          "aufbau und pflege von ci/cd-pipelines in gitlab ci",
+          "automatisierung der konfiguration mit ansible, verwaltung von secrets mit vault",
+        ],
+      },
+      {
+        when: "2022 — 2023",
+        title: "weiterbildung zum devops engineer",
+        where: "bootcamp, hamburg",
+        text: "fünf monate in vollzeit: linux, bash, docker, kubernetes, ci/cd mit jenkins und gitlab, elastic stack, scrum.",
+      },
+      {
+        when: "2018 — 2019",
+        title: "messtechniker / testing",
+        where: "Festo, esslingen",
+      },
+      {
+        when: "2012 — 2014",
+        title: "industrialisierung (china und eu) / mess- und versuchsmechaniker",
+        where: "thyssenkrupp Presta, esslingen",
+      },
+      {
+        when: "2007 — 2011",
+        title: "ausbildung und tätigkeit als zerspanungsmechaniker",
+        where: "Ewo Fluid Power, bissingen an der teck",
+      },
+    ] as Entry[],
+    projects: {
+      nixfiles: "nixos- und clan-core-konfiguration für alle meine rechner",
+      ssync: "p2p-synchronisierung von coding-agent-sessions, in rust",
+      "pi-pack": "skills und extensions für den coding agent pi",
+      fencr: "firecracker-sandboxes für ki-agenten auf nixos",
+      "harbor-labeler": "markiert genutzte images in harbor für die retention",
+    } as Record<string, string>,
+    projectsIntro:
+      "ich trage regelmäßig zu verschiedenen open-source-projekten bei. eigene projekte:",
+    certifications: [
+      { when: "2023", title: "GitOps Fundamentals", where: "Codefresh" },
+      { when: "2023", title: "GitOps at Scale", where: "Codefresh" },
+      { when: "2023", title: "abschluss zum devops engineer", where: "bootcamp" },
+    ] as Entry[],
+    skills: [
+      ["nix", "nix, nixos, clan-core, flake-parts, home-manager, nixbot"],
+      ["plattform", "kubernetes, talos, argocd, helm, gitlab ci, ansible, vault"],
+      ["betrieb", "zfs, borg, netbird, grafana, victoriametrics, gatus"],
+      ["lokale ki", "llama.cpp, vllm, llms, embedding-modelle, decision-modelle"],
+      ["code", "nix, bash, rust, go"],
+      ["sprachen", "deutsch (muttersprache), englisch (fließend)"],
+    ],
+    education: [
+      {
+        when: "2014 — 2017",
+        title: "allgemeine hochschulreife",
+        where: "Kolping Bildungscampus, stuttgart",
+      },
+      {
+        when: "2007 — 2011",
+        title: "ausbildung zum zerspanungsmechaniker",
+        where: "Ewo Fluid Power",
+      },
+    ] as Entry[],
+    pdf: { label: "pdf herunterladen", href: "/cv/de/lebenslauf.pdf", file: "lebenslauf-simon.pdf" },
+  },
+}[lang];
+
+const projects = (await getCollection("projects"))
+  .filter((p) => p.id in t.projects)
+  .sort((a, b) => a.data.order - b.data.order);
+
+// lucide icons (mail, github, sprout) and a matrix [m] mark
+const contacts = [
+  {
+    href: linkFor(fosskar.contact.mail)!,
+    label: fosskar.contact.mail,
+    paths: [
+      "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+      "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7",
+    ],
+  },
+  {
+    href: fosskar.me.code.github,
+    label: fosskar.me.code.github.replace(/^https:\/\//, ""),
+    paths: [
+      "M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4",
+      "M9 18c-4.51 2-5-2-7-2",
+    ],
+  },
+  {
+    href: linkFor(fosskar.contact.matrix)!,
+    label: fosskar.contact.matrix,
+    paths: [
+      "M7 3H4v18h3",
+      "M17 3h3v18h-3",
+      "M9 15v-4.5a1.5 1.5 0 0 1 3 0V15",
+      "M12 12a1.5 1.5 0 0 1 3 0v3",
+    ],
+  },
+  {
+    href: fosskar.me.code.radicle,
+    label: new URL(fosskar.me.code.radicle).host,
+    paths: [
+      "M7 20h10",
+      "M10 20c5.5-2.5.8-6.4 3-10",
+      "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z",
+      "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z",
+    ],
+  },
+];
+const langs = [
+  { lang: "en", href: "/cv/" },
+  { lang: "de", href: "/cv/de/" },
+];
+---
+
+<article class="sheet surface" lang={lang}>
+  <header class="top">
+    <div>
+      <h1 class="name" aria-label="Simon S.">
+        <span set:html={firstName} /><span class="surname" set:html={surname} />
+      </h1>
+      <p class="role">{t.role}</p>
+      <p class="place">{t.place}</p>
+    </div>
+    <ul class="contacts">
+      {
+        contacts.map((c) => (
+          <li>
+            <a href={c.href}>
+              {c.label}
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                {c.paths.map((d) => (
+                  <path d={d} />
+                ))}
+              </svg>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </header>
+
+  <section class="row">
+    <h2>{t.sections.profile}</h2>
+    <p>{t.profile}</p>
+  </section>
+
+  <section class="row timeline">
+    <h2>{t.sections.experience}</h2>
+    <div>
+      {
+        t.experience.map((e) => (
+          <div class="item">
+            <div class="head">
+              <h3>
+                {e.title}
+                {e.where && <span class="where"> · {e.where}</span>}
+              </h3>
+              <span class="when">{e.when}</span>
+            </div>
+            {e.text && <p>{e.text}</p>}
+            {e.points && (
+              <ul class="points">
+                {e.points.map((p) => (
+                  <li>{p}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="row">
+    <h2>{t.sections.projects}</h2>
+    <div>
+      <p class="intro">{t.projectsIntro}</p>
+      {
+        projects.map((p) => (
+          <div class="item">
+            <h3>
+              {p.data.repo ? (
+                <a href={p.data.repo}>{p.data.title}</a>
+              ) : (
+                p.data.title
+              )}
+              <span class="where"> · {t.projects[p.id]}</span>
+            </h3>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  {
+    (
+      [
+        ["certifications", t.certifications],
+        ["education", t.education],
+      ] as const
+    ).map(([key, entries], i) => (
+      <>
+        {i === 1 && (
+          <section class="row">
+            <h2>{t.sections.skills}</h2>
+            <dl class="skills">
+              {t.skills.map(([k, v]) => (
+                <>
+                  <dt>{k}</dt>
+                  <dd>
+                    {v.split(", ").map((skill) => (
+                      <span class="skill">{skill}</span>
+                    ))}
+                  </dd>
+                </>
+              ))}
+            </dl>
+          </section>
+        )}
+        <section class="row">
+          <h2>{t.sections[key]}</h2>
+          <div>
+            {entries.map((e) => (
+              <div class="item">
+                <div class="head">
+                  <h3>
+                    {e.title}
+                    {e.where && <span class="where"> · {e.where}</span>}
+                  </h3>
+                  <span class="when">{e.when}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
+    ))
+  }
+</article>
+<div class="tools">
+  <nav class="lang-switch" aria-label="language">
+    {
+      langs.map((l) => (
+        <a
+          href={l.href}
+          hreflang={l.lang}
+          lang={l.lang}
+          aria-current={l.lang === lang ? "page" : undefined}
+        >
+          {l.lang}
+        </a>
+      ))
+    }
+  </nav>
+  <a class="pdf" href={t.pdf.href} download={t.pdf.file}>{t.pdf.label}</a>
+</div>
+
+
+<style>
+  /* screen: site theme on a flat card; print swaps in the paper palette */
+  .sheet {
+    --ink: var(--strong);
+    --soft: var(--muted);
+    --rule: var(--border);
+    --ink-accent: var(--accent);
+    max-width: 62rem;
+    margin: 3rem auto 0;
+    color: var(--ink);
+    padding: 4rem 4.5rem;
+    border-radius: 20px;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+  .sheet a {
+    color: var(--ink);
+    text-decoration-color: var(--rule);
+    text-underline-offset: 3px;
+  }
+  .sheet a:hover {
+    color: var(--ink-accent);
+  }
+  .sheet :is(h1, h2, h3) {
+    color: var(--ink);
+  }
+  .top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: end;
+    padding-bottom: 1.75rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .name {
+    display: flex;
+    gap: 0.3em;
+    margin: 0;
+    font-size: 3rem;
+    line-height: 1;
+  }
+  .name :global(svg) {
+    height: 1em;
+    width: auto;
+    display: block;
+  }
+  .surname :global(svg) {
+    filter: blur(6px);
+  }
+  .role {
+    margin: 0.75rem 0 0;
+    color: var(--soft);
+    font-size: 1.05rem;
+  }
+  .place {
+    margin: 0.15rem 0 0;
+    color: var(--soft);
+  }
+  .contacts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
+    line-height: 1.9;
+  }
+  .contacts li + li {
+    margin: 0;
+  }
+  .contacts a {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .contacts svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    color: var(--ink-accent);
+    flex: none;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 10.5rem 1fr;
+    gap: 2rem;
+    padding: 1.35rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .row:last-child {
+    border: 0;
+  }
+  .row > h2 {
+    margin: 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-accent);
+    font-weight: 600;
+    padding-top: 0.2rem;
+  }
+  .row p {
+    margin: 0;
+  }
+  .item + .item {
+    margin-top: 0.55rem;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .item h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  .item h3 a {
+    text-decoration: none;
+  }
+  .where {
+    font-weight: 400;
+    color: var(--soft);
+  }
+  .when {
+    color: var(--soft);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding-top: 0.1rem;
+  }
+  .item p {
+    margin: 0.1rem 0 0;
+    color: var(--soft);
+    font-size: 0.93rem;
+  }
+  .row p.intro {
+    margin: 0 0 0.6rem;
+    color: var(--soft);
+  }
+  .points {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    color: var(--soft);
+    font-size: 0.93rem;
+  }
+  .points li + li {
+    margin-top: 0.1rem;
+  }
+  .skills {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.3rem 1rem;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .skills dt {
+    color: var(--soft);
+  }
+  .skills dd {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .skill {
+    font-size: 0.85rem;
+    padding: 0.05rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    background: color-mix(in srgb, var(--ink-accent) 8%, transparent);
+  }
+  .timeline .item {
+    position: relative;
+    padding-left: 1.25rem;
+    border-left: 1px solid var(--rule);
+  }
+  .timeline .item + .item {
+    margin-top: 0;
+    padding-top: 0.55rem;
+  }
+  .timeline .item::before {
+    content: "";
+    position: absolute;
+    left: -0.3rem;
+    top: 0.5rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--ink-accent);
+  }
+  .timeline .item + .item::before {
+    top: 1.05rem;
+  }
+  .timeline .item:first-child::before {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink-accent) 25%, transparent);
+  }
+  .tools {
+    max-width: 62rem;
+    margin: 1rem auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+  }
+  .tools .pdf {
+    color: var(--text);
+    text-underline-offset: 3px;
+  }
+  .lang-switch {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .lang-switch a {
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .lang-switch a[aria-current="page"] {
+    color: var(--accent-bright);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  @media (max-width: 44rem) {
+    .sheet {
+      padding: 2rem 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .top,
+    .row {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    .contacts a {
+      justify-content: flex-start;
+      flex-direction: row-reverse;
+    }
+    .name {
+      font-size: 2.25rem;
+    }
+  }
+  @media print {
+    @page {
+      margin: 14mm 16mm;
+    }
+    /* the sheet sizes everything in rem, so scaling the root scales the cv */
+    :global(html) {
+      font-size: 10.5px;
+    }
+    .row {
+      padding: 0.8rem 0;
+    }
+    .top {
+      padding-bottom: 1.2rem;
+    }
+    .sheet {
+      --ink: #1a1a1a;
+      --soft: #5e5e5e;
+      --rule: #e6e3dc;
+      --ink-accent: #1f7855;
+      color-scheme: light;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      max-width: none;
+      background: none;
+    }
+    .skills dd {
+      display: block;
+    }
+    .skill {
+      font-size: inherit;
+      padding: 0;
+      border: 0;
+      background: none;
+    }
+    .skill + .skill::before {
+      content: ", ";
+    }
+    .surname :global(svg) {
+      filter: none;
+    }
+    .item {
+      break-inside: avoid;
+    }
+    .tools {
+      display: none;
+    }
+  }
+</style>

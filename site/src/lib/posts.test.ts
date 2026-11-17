@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { postHref, postSlug, published } from "./posts";
+import { published } from "./posts";
 
 const post = (id: string, date: string, draft = false) => ({
   id,
@@ -19,17 +19,5 @@ describe("published", () => {
       "mid.md",
       "old.md",
     ]);
-  });
-});
-
-describe("post urls", () => {
-  it("postSlug strips only a trailing .md, keeping the path", () => {
-    expect(postSlug("hello-world.md")).toBe("hello-world");
-    expect(postSlug("2024/deep/post.md")).toBe("2024/deep/post");
-    expect(postSlug("extensionless")).toBe("extensionless");
-  });
-
-  it("postHref routes under /blog/ with a trailing slash", () => {
-    expect(postHref("hello-world.md")).toBe("/blog/hello-world/");
   });
 });

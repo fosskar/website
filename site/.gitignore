@@ -23,5 +23,6 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-# astro/vite caches (see astro.config.mjs)
+# astro/vite caches (see astro.config.ts)
 .cache/
+src/generated/
