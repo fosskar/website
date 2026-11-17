@@ -19,6 +19,13 @@ const sitePaths = new Set(Object.values(pageNames({ posts, notes })));
 const projectInfo = new Map(
   (await getCollection("projects")).map((p) => [p.data.repo, p.data.description]),
 );
+// what each entry in likes stands for, shown on hover like the project hints
+const likeInfo: Record<string, string> = {
+  nix: "nixos on all my machines, from one flake: nixfiles",
+  "self-hosting": "a homelab of nixos machines running my own services",
+  "local llms": "llama.cpp and vllm in my homelab, with regular benchmarks",
+  "fixing things properly": "when something bugs me, i fix the cause instead of working around it",
+};
 
 const setting = (path: string) =>
   path.startsWith("website.settings.")
@@ -78,6 +85,7 @@ const html = lines
               `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
             return `<a class="ext" href="${esc(href)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
           }
+          if (t.path === "likes") hint = likeInfo[value];
           return `<span class="s">${text}</span>`;
         }
         if (t.kind === "number") return `<span class="s">${text}</span>`;
