@@ -11,6 +11,7 @@ export async function GET() {
     notes: await getCollection("wiki"),
     contact: fosskar.contact,
     code: fosskar.me.code,
+    radicle: fosskar.me.radicle,
   });
   return new Response(JSON.stringify(items), {
     headers: { "Content-Type": "application/json" },

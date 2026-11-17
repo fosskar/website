@@ -17,6 +17,7 @@
     about = "./about/";
     cv = "./cv/";
     code = "https://github.com/fosskar";
+    radicle = "https://radicle.fosskar.eu";
   };
 
   # side projects

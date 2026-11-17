@@ -18,6 +18,7 @@ describe("searchItems", () => {
     notes: [note("nixos/tpm.md", "tpm unlock")],
     contact: { mail: "a@b.eu", matrix: "@a:b.de" },
     code: "https://github.com/a",
+    radicle: "https://radicle.a.eu",
   });
 
   it("lists contact entries first, linked from fosskar.nix", () => {
@@ -28,6 +29,9 @@ describe("searchItems", () => {
     );
     expect(items.find((i) => i.title === "github")?.href).toBe(
       "https://github.com/a",
+    );
+    expect(items.find((i) => i.title === "radicle")?.href).toBe(
+      "https://radicle.a.eu",
     );
   });
 
