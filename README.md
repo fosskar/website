@@ -1,6 +1,6 @@
 # website
 
-personal site built with [astro](https://astro.build): blog, wiki, and projects. content is plain markdown in three repo-root directories: `wiki/` (obsidian vault), `blog/` and `projects/`. the astro project is in `site/`, nix modules are in `nix/`.
+personal site built with [astro](https://astro.build) and nix. the home page is [`fosskar.nix`](fosskar.nix), shown as it is. the rest is plain markdown in three repo-root directories: `wiki/` (obsidian vault), `blog/` and `projects/`. the astro project is in `site/`, nix modules are in `nix/`.
 
 ## dev
 
@@ -8,7 +8,8 @@ personal site built with [astro](https://astro.build): blog, wiki, and projects.
 nix develop
 cd site && npm run dev     # live preview at localhost:4321
 cd site && npm run build   # static site to site/dist/
-nix build                  # reproducible site build
+nix build                  # reproducible site build, with the cv pdfs
+nix build .#cv             # only the cv pdfs
 ```
 
 ## update dependencies
