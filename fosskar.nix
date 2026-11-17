@@ -5,7 +5,12 @@
   location = "hamburg";
 
   # kubernetes at work, nixos everywhere else
-  likes = [ "nix" "self-hosting" "local llms" "fixing things properly" ];
+  likes = [
+    "nix"
+    "self-hosting"
+    "local llms"
+    "fixing things properly"
+  ];
 
   # about me, my cv (english and german, also as pdf) and my code
   me = {
