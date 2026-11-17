@@ -95,7 +95,9 @@ const html = lines
             hint =
               projectInfo.get(href) ??
               `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
-            return `<a class="ext" href="${esc(href)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
+            // goatcounter counts a click on these as an event named by the target
+            const event = href.replace(/^https?:\/\/|^mailto:/, "");
+            return `<a class="ext" href="${esc(href)}" data-goatcounter-click="${esc(event)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
           }
           if (t.path === "likes") hint = likeInfo[value];
           return `<span class="s">${text}</span>`;
