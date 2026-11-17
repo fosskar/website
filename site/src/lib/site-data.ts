@@ -14,6 +14,7 @@ export interface Fosskar {
   location: string;
   likes: string[];
   me: Record<string, string>;
+  projects: Record<string, string>;
   writing: Record<string, string>;
   contact: Record<string, string>;
   website: { settings: Settings };

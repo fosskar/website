@@ -19,7 +19,8 @@ should use these names, not synonyms.
   listed newest first. a post's url is its id minus `.md` under `/blog/`.
   publication rules are defined in `site/src/lib/posts.ts`.
 - **project**: one markdown file in `projects/`, listed on the about pages
-  and the cv, ordered by frontmatter `order`.
+  and the cv, ordered by frontmatter `order`. `projects` in `fosskar.nix`
+  links the same repos on the home page.
 - **site data**: `fosskar.nix` at the repo root, evaluated by nix into
   `site-data.json`. the home page shows the file itself; pages read the json
   through `site/src/lib/site-data.ts`.

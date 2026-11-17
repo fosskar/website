@@ -99,6 +99,9 @@ export function linkFor(value: string): string | undefined {
   // relative to the home page, the only page that shows fosskar.nix
   if (value.startsWith("./")) return value.slice(1);
   if (/^https?:\/\//.test(value)) return value;
+  // a flake reference, as in `nix build github:owner/repo`
+  const flake = value.match(/^github:([\w.-]+\/[\w.-]+)$/);
+  if (flake) return `https://github.com/${flake[1]}`;
   if (/^[^@\s]+@[^@\s]+\.[a-z]+$/i.test(value)) return `mailto:${value}`;
   if (/^@[^:\s]+:\S+$/.test(value)) return `https://matrix.to/#/${value}`;
   return undefined;

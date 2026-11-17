@@ -17,6 +17,10 @@ const notes = (await getCollection("wiki")).sort(
   (a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0),
 );
 const sitePaths = new Set(Object.values(pageNames({ posts, notes })));
+// a project's hint is its description from projects/
+const projectInfo = new Map(
+  (await getCollection("projects")).map((p) => [p.data.repo, p.data.description]),
+);
 
 const setting = (path: string) =>
   path.startsWith("website.settings.")
@@ -71,7 +75,9 @@ const html = lines
           }
           if (href) {
             length += 1;
-            hint = `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
+            hint =
+              projectInfo.get(href) ??
+              `opens ${href.startsWith("mailto:") ? "your mail app" : new URL(href).host}`;
             return `<a class="ext" href="${esc(href)}">${text}<span class="arrow" aria-hidden="true">↗</span></a>`;
           }
           return `<span class="s">${text}</span>`;
@@ -338,9 +344,11 @@ const html = lines
   .home .v:focus {
     background: color-mix(in srgb, currentColor 16%, transparent);
   }
-  /* what a click does, as a comment at the line end; invisible text still
-     counts for the block width, so showing it moves nothing */
+  /* what a click does, as a comment at the line end. out of the flow, so
+     long hints don't widen the centered block */
   .home .hint {
+    position: absolute;
+    white-space: pre;
     color: var(--dim);
     opacity: 0;
     transition: opacity 0.12s;
