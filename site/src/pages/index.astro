@@ -410,7 +410,9 @@ const html = lines
     opacity: 0;
     transition: opacity 0.12s;
   }
-  .home .line:is(:hover, :focus-within) + .hint {
+  /* keyboard focus only: a clicked link keeps focus, and going back to the
+     page restores it */
+  .home .line:is(:hover, :has(:focus-visible)) + .hint {
     opacity: 1;
   }
   /* wraps inside the file's width instead of widening the centered block */
