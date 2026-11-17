@@ -73,7 +73,7 @@ Wiki note conventions (apply when writing or editing notes under `wiki/`):
 Site code:
 
 - TypeScript strict (`astro/tsconfigs/strict`). All config is `.ts` including `astro.config.ts`
-- domain logic belongs in `site/src/lib/` with colocated vitest tests (`notes.test.ts`, `posts.test.ts`). Pages don't inline rules: they call `published()`, `noteHref()`, etc.
+- domain logic belongs in `site/src/lib/`. Pages don't inline rules: they call `published()`, `noteHref()`, etc.
 - shared markup goes in `src/components/` (`ArticleHead` for article headers, `EntryCard` for listings). Don't re-inline card/header markup in pages
 - styling is hand-written CSS: the global theme is defined in `Layout.astro` `<style is:global>` as CSS variables on `:root` (dark) and `:root[data-theme="light"]`. `website.settings` in `fosskar.nix` sets `data-theme` and `--font-size` on `<html>`. Values a visitor changes on the home page are kept in `localStorage` under `settings`, and the inline script in `Layout.astro` applies them before the first paint. Page and component rules go in scoped `<style>` blocks. HTML built as a string (the `fosskar.nix` source on the home page, the path line, the footer store path) avoids template whitespace and needs global selectors under a unique class or element (`.home`, `.crumbs`, `footer`), because scoped styles do not reach it. Print always uses the light palette. Surfaces are flat, without blur or glow. The only gradients are the home page fades at the window edges. The palette is `pi-jade` from nixfiles `modules/flake-parts/themes.nix`. On the home page the kind of value picks the colour: plain strings green (`--string`), site paths coral (`--path`), external links blue (`--ext`), settings yellow (`--set`). Fonts are Inter and Commit Mono 500 from `@fontsource`, imported in `Layout.astro` instead of loaded from other hosts. The site doesn't use a framework or any integrations beyond sitemap + RSS
 - frontmatter schemas are zod in `content.config.ts`. Extend the schema before using a new field
@@ -100,7 +100,8 @@ Site code:
 
 ## Testing & QA
 
-- `cd site && npm test`: vitest unit tests for `src/lib/` (wikilink resolution, slug collision, draft filtering, the `fosskar.nix` tokenizer and settings types, search). Run them after touching `lib/`. They are **not** part of `nix flake check`
+- write tests only for logic whose failure is hard to see: wikilink resolution, the tokenizer, type checks. Removing an option, styling, layout, data lists and one-line helpers get no test and no test-first. Check those by building and looking at the page. A test that restates its code adds upkeep without catching anything
+- `cd site && npm test`: vitest unit tests for `src/lib/` (wikilink resolution, code fences, slug collision, draft filtering, the `fosskar.nix` tokenizer and settings errors). Run them after touching `lib/`. They are **not** part of `nix flake check`
 - `nix flake check` / `nix build`: the build fails on schema violations, duplicate wiki slugs, unresolved wikilinks, and broken frontmatter
 - after content edits, `npm run build` in `site/` is the fast check. Inspect `site/dist/` output for rendered wikilinks when touching `## related` footers
 - nix edits: run `nix fmt` before committing

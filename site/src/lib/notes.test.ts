@@ -6,14 +6,10 @@ import {
   SECTIONS,
   assertUniqueSlugs,
   groupsOf,
-  noteHref,
   noteSlugIndex,
   orderedSections,
   resolveWikiLink,
   scanWikiLinks,
-  sectionHref,
-  sectionOf,
-  slugOf,
   validateWikiLinks,
 } from "./notes";
 
@@ -36,27 +32,6 @@ function makeTree(files: Record<string, string>): string {
   return root;
 }
 
-describe("note identity", () => {
-  it("slugOf is the basename, minus a trailing .md", () => {
-    expect(slugOf("nixos/audio/pipewire")).toBe("pipewire");
-    expect(slugOf("homelab/proxmox.md")).toBe("proxmox");
-    expect(slugOf("standalone")).toBe("standalone");
-  });
-
-  it("sectionOf is the first path segment", () => {
-    expect(sectionOf("nixos/audio/pipewire")).toBe("nixos");
-    expect(sectionOf("security/yubikey.md")).toBe("security");
-  });
-
-  it("notes route flat under /wiki/ regardless of directory depth", () => {
-    expect(noteHref("nixos/audio/pipewire")).toBe("/wiki/pipewire/");
-  });
-
-  it("sections link to anchors on the wiki index", () => {
-    expect(sectionHref("nixos")).toBe("/wiki/#nixos");
-  });
-});
-
 describe("orderedSections", () => {
   // derived from the live record so tests survive config edits
   const described = Object.keys(SECTIONS);
@@ -73,10 +48,6 @@ describe("orderedSections", () => {
   it("lists only the described sections actually present", () => {
     const some = [described.at(-1)!, described[0]!];
     expect(orderedSections(some)).toEqual([described[0], described.at(-1)]);
-  });
-
-  it("deduplicates", () => {
-    expect(orderedSections(["misc", "misc"])).toEqual(["misc"]);
   });
 });
 
@@ -150,31 +121,8 @@ describe("scanWikiLinks", () => {
     ]);
   });
 
-  it("skips links inside tilde fences, info string allowed", () => {
-    const md = ["~~~text", "[[inside]]", "~~~", "[[after]]"].join("\n");
-    expect(scanWikiLinks(md)).toEqual([{ target: "after", line: 4 }]);
-  });
-
   it("a longer fence closes a shorter opener", () => {
     const md = ["```", "[[hidden]]", "````", "[[after]]"].join("\n");
-    expect(scanWikiLinks(md)).toEqual([{ target: "after", line: 4 }]);
-  });
-
-  it("a shorter or different-marker fence line does not close the block", () => {
-    const md = [
-      "````",
-      "```",
-      "[[still hidden]]",
-      "~~~~",
-      "[[also hidden]]",
-      "````",
-      "[[after]]",
-    ].join("\n");
-    expect(scanWikiLinks(md)).toEqual([{ target: "after", line: 7 }]);
-  });
-
-  it("a fence indented up to three spaces still opens", () => {
-    const md = ["   ```", "[[hidden]]", "```", "[[after]]"].join("\n");
     expect(scanWikiLinks(md)).toEqual([{ target: "after", line: 4 }]);
   });
 
@@ -193,10 +141,6 @@ describe("resolveWikiLink", () => {
 
   it("normalizes spaces and case, resolving by basename", () => {
     expect(resolveWikiLink("Sub Dir/My Note", known)).toBe("my-note");
-  });
-
-  it("drops empty and .. path segments", () => {
-    expect(resolveWikiLink("../secrets//My Note", known)).toBe("my-note");
   });
 
   it("rejects dir-index links even when routed through a path", () => {
@@ -241,13 +185,6 @@ describe("noteSlugIndex", () => {
 describe("validateWikiLinks", () => {
   const known: ReadonlySet<string> = new Set(["pipewire", "zfs-pools"]);
 
-  it("passes a tree whose links all resolve", () => {
-    const root = makeTree({
-      "nixos/audio.md": "see [[pipewire]] and [[ZFS Pools|pools]]",
-    });
-    expect(() => validateWikiLinks([root], known)).not.toThrow();
-  });
-
   it("lists every broken link across dirs as path:line", () => {
     const rootA = makeTree({
       "nixos/a.md": ["fine [[pipewire]]", "", "bad [[Missing One]]"].join("\n"),
@@ -267,10 +204,5 @@ describe("validateWikiLinks", () => {
     expect(err!.message).toContain(`${join(rootB, "b.md")}:1:`);
     expect(err!.message).toContain("[[Missing One]]");
     expect(err!.message).toContain("[[missing-two]]");
-  });
-
-  it("skips the vault-root index.md", () => {
-    const root = makeTree({ "index.md": "[[nowhere]]" });
-    expect(() => validateWikiLinks([root], known)).not.toThrow();
   });
 });

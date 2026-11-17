@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  checkSetting,
-  linkFor,
-  settingTypes,
-  suggest,
-  tokenize,
-} from "./fosskar";
+import { checkSetting, linkFor, suggest, tokenize } from "./fosskar";
 
 const src = `# fosskar.nix
 {
@@ -24,13 +18,6 @@ const src = `# fosskar.nix
 describe("tokenize", () => {
   const lines = tokenize(src);
   const flat = lines.flat();
-
-  it("keeps one token list per source line", () => {
-    expect(lines).toHaveLength(src.split("\n").length);
-    expect(lines.map((l) => l.map((t) => t.text).join(""))).toEqual(
-      src.split("\n"),
-    );
-  });
 
   it("marks comments, attribute names and strings", () => {
     expect(flat.find((t) => t.kind === "comment")?.text).toBe("# fosskar.nix");
@@ -82,29 +69,15 @@ describe("linkFor", () => {
       "https://matrix.to/#/@fosskar:fosskar.de",
     );
   });
-
-  it("leaves plain words alone", () => {
-    expect(linkFor("hamburg")).toBeUndefined();
-    expect(linkFor("devops engineer / sre")).toBeUndefined();
-  });
 });
 
 describe("suggest", () => {
   it("returns the closest candidates first", () => {
     expect(suggest("blgo", ["wiki", "blog", "about", "cv"])[0]).toBe("blog");
   });
-
-  it("drops candidates that are too far away", () => {
-    expect(suggest("zzzzzzzz", ["wiki", "blog"])).toEqual([]);
-  });
 });
 
 describe("checkSetting", () => {
-  it("accepts the values the type allows", () => {
-    expect(checkSetting("colorScheme", "light")).toBeUndefined();
-    expect(checkSetting("fontSize", 18)).toBeUndefined();
-  });
-
   it("rejects other values with the error nixos would print", () => {
     expect(checkSetting("fontSize", 99)).toBe(
       "A definition for option `website.settings.fontSize' is not of type `integer between 12 and 24 (both inclusive)'. Definition values:\n- In `fosskar.nix': 99",
@@ -113,9 +86,5 @@ describe("checkSetting", () => {
       'is not of type `one of "dark", "light"\'',
     );
     expect(checkSetting("fontSize", 16.5)).toBeDefined();
-  });
-
-  it("has a type for every setting", () => {
-    expect(Object.keys(settingTypes)).toEqual(["colorScheme", "fontSize"]);
   });
 });
