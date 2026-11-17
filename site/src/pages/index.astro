@@ -341,8 +341,11 @@ const html = lines
     border-bottom-style: solid;
   }
   /* values a visitor can type into */
+  /* a button is an inline block: with the code's line-height its border
+     would sit at the bottom of the whole line */
   .home button.v {
     font: inherit;
+    line-height: normal;
     color: inherit;
     background: none;
     border: 0;
