@@ -2,7 +2,7 @@
 import "@fontsource-variable/inter";
 import "@fontsource/commit-mono/500.css";
 import Search from "../components/Search.astro";
-import { fosskar, storePath } from "../lib/site-data";
+import { fosskar, settings, storePath } from "../lib/site-data";
 
 interface Props {
   title: string;
@@ -31,14 +31,15 @@ const crumbs = [
       : `/<a href="/${segments.slice(0, i + 1).map(esc).join("/")}/">${esc(seg)}</a>`,
   ),
 ].join("");
-const settings = fosskar.website.settings;
 
 ---
 
 <!doctype html>
 <html
   lang={lang}
-  data-theme={settings.colorScheme}
+  data-theme={settings.colorScheme === "light" ? "light" : "dark"}
+  data-typing={String(settings["typing.enable"])}
+  data-hints={String(settings["hints.enable"])}
   style={`--font-size: ${settings.fontSize}px`}
 >
   <head>
@@ -54,9 +55,19 @@ const settings = fosskar.website.settings;
     <!-- website.settings from fosskar.nix; values changed on the home page win -->
     <script is:inline define:vars={{ settings }}>
       const root = document.documentElement;
+      // "system" follows the os setting, also when it changes later
+      const light = matchMedia("(prefers-color-scheme: light)");
+      let scheme = settings.colorScheme;
+      const theme = () =>
+        (root.dataset.theme =
+          scheme === "system" ? (light.matches ? "light" : "dark") : scheme);
+      light.addEventListener("change", theme);
       window.applySettings = (s) => {
-        root.dataset.theme = s.colorScheme;
+        scheme = s.colorScheme;
+        theme();
         root.style.setProperty("--font-size", `${s.fontSize}px`);
+        root.dataset.typing = String(s["typing.enable"]);
+        root.dataset.hints = String(s["hints.enable"]);
       };
       // localStorage is outside the build: older builds stored other keys,
       // and the value may not parse

@@ -83,7 +83,7 @@ describe("checkSetting", () => {
       "A definition for option `website.settings.fontSize' is not of type `integer between 12 and 24 (both inclusive)'. Definition values:\n- In `fosskar.nix': 99",
     );
     expect(checkSetting("colorScheme", "blue")).toContain(
-      'is not of type `one of "dark", "light"\'',
+      'is not of type `one of "dark", "light", "system"\'',
     );
     expect(checkSetting("fontSize", 16.5)).toBeDefined();
   });

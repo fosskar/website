@@ -48,5 +48,7 @@
   website.settings = {
     colorScheme = "dark";
     fontSize = 18;
+    typing.enable = true;
+    hints.enable = true;
   };
 }

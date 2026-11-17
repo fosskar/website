@@ -25,7 +25,8 @@ should use these names, not synonyms.
   `site-data.json`. the home page shows the file itself; pages read the json
   through `site/src/lib/site-data.ts`.
 - **settings**: `website.settings` in `fosskar.nix`, the values a visitor
-  can change on the home page (colour scheme, font size). each
+  can change on the home page (colour scheme, font size, typing
+  animation, hints). each
   has a type in `settingTypes`. a wrong value gets the nixos type error.
 - **store path**: the output path of the `website` package. the footer shows
   it.

@@ -17,13 +17,30 @@ interface Fosskar {
   projects: Record<string, string>;
   writing: Record<string, string>;
   contact: { mail: string; matrix: string };
-  website: { settings: Settings };
+  website: { settings: Record<string, unknown> };
 }
 
 export const fosskar = data.fosskar as Fosskar;
 
+// nix nests `typing.enable` as { typing: { enable } }; the page names a
+// setting by its dotted path, as the file writes it
+const flat = (
+  o: Record<string, unknown>,
+  prefix = "",
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(o).flatMap(([k, v]) =>
+      v && typeof v === "object"
+        ? Object.entries(flat(v as Record<string, unknown>, `${prefix}${k}.`))
+        : [[`${prefix}${k}`, v]],
+    ),
+  );
+
+/** website.settings with dotted names, checked against settingTypes */
+export const settings = flat(fosskar.website.settings) as Settings;
+
 for (const name of Object.keys(settingTypes) as SettingName[]) {
-  const error = checkSetting(name, fosskar.website.settings[name]);
+  const error = checkSetting(name, settings[name]);
   if (error) throw new Error(`fosskar.nix: ${error}`);
 }
 

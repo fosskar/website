@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { published } from "../lib/posts";
 import { pageNames } from "../lib/search";
 import { linkFor, tokenize, type SettingName } from "../lib/fosskar";
-import { fosskar } from "../lib/site-data";
+import { fosskar, settings } from "../lib/site-data";
 
 // the page shows the file the site's data is evaluated from
 const source = readFileSync(resolve(process.cwd(), "../fosskar.nix"), "utf8").trimEnd();
@@ -61,14 +61,17 @@ const html = lines
         }
         if (t.kind === "attr") return `<span class="k">${text}</span>`;
         const name = t.path && setting(t.path);
-        if (name && (t.kind === "string" || t.kind === "number")) {
+        if (name && (t.kind === "string" || t.kind === "number" || t.kind === "bool")) {
           editable = t.path;
           const attrs = `data-setting="${name}" data-key="${t.path}" aria-label="${t.path}"`;
           if (t.kind === "number") {
             hint = "click and type a number";
             return `<span class="set"><span class="v" contenteditable="plaintext-only" spellcheck="false" role="textbox" ${attrs}>${text}</span></span>`;
           }
+          // the script fills in what a click switches to
           hint = "";
+          if (t.kind === "bool")
+            return `<span class="set"><button class="v" type="button" ${attrs}>${text}</button></span>`;
           return `<span class="set">"<button class="v" type="button" ${attrs}>${esc(t.text.slice(1, -1))}</button>"</span>`;
         }
         if (t.kind === "string") {
@@ -118,6 +121,7 @@ const html = lines
     <script is:inline>
       // types the file once per session; set before the first paint
       if (
+        document.documentElement.dataset.typing !== "false" &&
         !sessionStorage.getItem("typed") &&
         !matchMedia("(prefers-reduced-motion: reduce)").matches
       ) {
@@ -128,7 +132,7 @@ const html = lines
     <pre
       class="nix"
       id="nix"
-      data-defaults={JSON.stringify(fosskar.website.settings)}><code set:html={html} /></pre>
+      data-defaults={JSON.stringify(settings)}><code set:html={html} /></pre>
   </div>
 
 <script>
@@ -208,7 +212,8 @@ const html = lines
     getSelection()!.addRange(range);
   }
 
-  // website.settings: a click steps through the allowed strings; the number
+  // website.settings: a click steps through the allowed strings and
+  // booleans; the number
   // is typed, or stepped with the arrow keys
   const settings = [...nix.querySelectorAll<HTMLElement>("[data-setting]")];
   const resets: (() => void)[] = [];
@@ -216,9 +221,10 @@ const html = lines
     const name = el.dataset.setting as SettingName;
     const type = settingTypes[name];
     el.textContent = String(current[name]);
-    if ("enum" in type) {
-      const values: readonly string[] = type.enum;
-      const next = () => values[(values.indexOf(String(current[name])) + 1) % values.length]!;
+    const values: readonly (string | boolean)[] | undefined =
+      "enum" in type ? type.enum : "bool" in type ? [true, false] : undefined;
+    if (values) {
+      const next = () => values[(values.indexOf(current[name] as string | boolean) + 1) % values.length]!;
       const hint = el.closest(".line")!.nextElementSibling as HTMLElement;
       const show = () => {
         el.textContent = String(current[name]);
@@ -233,6 +239,8 @@ const html = lines
       resets.push(show);
       continue;
     }
+    // only fontSize is left: a number with a range
+    const range = type as { min: number; max: number };
     const commit = () => {
       const raw = el.textContent!.trim();
       const value = /^-?\d+$/.test(raw) ? Number(raw) : raw;
@@ -256,7 +264,7 @@ const html = lines
         e.preventDefault();
         const step = e.key === "ArrowUp" ? 1 : -1;
         el.textContent = String(
-          Math.min(type.max, Math.max(type.min, Number(current[name]) + step)),
+          Math.min(range.max, Math.max(range.min, Number(current[name]) + step)),
         );
         commit();
         selectAll(el);
@@ -412,6 +420,9 @@ const html = lines
   }
   /* keyboard focus only: a clicked link keeps focus, and going back to the
      page restores it */
+  :root[data-hints="false"] .home .hint {
+    display: none;
+  }
   .home .line:is(:hover, :has(:focus-visible)) + .hint {
     opacity: 1;
   }

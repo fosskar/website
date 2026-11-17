@@ -3,7 +3,7 @@
 // the data itself comes from src/generated/site-data.json, written by nix.
 
 interface Token {
-  kind: "comment" | "string" | "number" | "attr" | "punct" | "text";
+  kind: "comment" | "string" | "number" | "bool" | "attr" | "punct" | "text";
   text: string;
   /** dotted attribute path of an attr name or of the value it holds */
   path?: string;
@@ -14,6 +14,7 @@ const patterns: [Token["kind"], RegExp][] = [
   ["string", /^"(?:\\.|[^"\\])*"/],
   ["attr", /^[A-Za-z_][\w'-]*(?:\.[A-Za-z_][\w'-]*)*(?=\s*=)/],
   ["number", /^\d+(?=\s*;)/],
+  ["bool", /^(?:true|false)(?=\s*;)/],
   ["punct", /^[{}[\];=]/],
   ["text", /^\s+|^[^\s"#{}[\];=]+/],
 ];
@@ -49,7 +50,7 @@ export function tokenize(src: string): Token[][] {
         }
       }
       tokens.push(
-        kind === "string" || kind === "number"
+        kind === "string" || kind === "number" || kind === "bool"
           ? { kind, text, path: pathOf() }
           : { kind, text },
       );
@@ -60,16 +61,19 @@ export function tokenize(src: string): Token[][] {
 
 /** website.settings: the values a visitor can change, typed like nixos options */
 export const settingTypes = {
-  colorScheme: { enum: ["dark", "light"] },
+  colorScheme: { enum: ["dark", "light", "system"] },
   fontSize: { min: 12, max: 24 },
+  "typing.enable": { bool: true },
+  "hints.enable": { bool: true },
 } as const;
 
 export type SettingName = keyof typeof settingTypes;
-export type Settings = Record<SettingName, string | number>;
+export type Settings = Record<SettingName, string | number | boolean>;
 
 /** the type the way nixos describes it, e.g. `one of "dark", "light"` */
 function describeType(name: SettingName): string {
   const t = settingTypes[name];
+  if ("bool" in t) return "boolean";
   return "enum" in t
     ? `one of ${t.enum.map((v) => `"${v}"`).join(", ")}`
     : `integer between ${t.min} and ${t.max} (both inclusive)`;
@@ -82,11 +86,13 @@ export function checkSetting(
 ): string | undefined {
   const t = settingTypes[name];
   const ok =
-    "enum" in t
-      ? (t.enum as readonly unknown[]).includes(value)
-      : Number.isInteger(value) &&
-        (value as number) >= t.min &&
-        (value as number) <= t.max;
+    "bool" in t
+      ? typeof value === "boolean"
+      : "enum" in t
+        ? (t.enum as readonly unknown[]).includes(value)
+        : Number.isInteger(value) &&
+          (value as number) >= t.min &&
+          (value as number) <= t.max;
   if (ok) return undefined;
   const shown = typeof value === "string" ? `"${value}"` : String(value);
   return `A definition for option \`website.settings.${name}' is not of type \`${describeType(name)}'. Definition values:\n- In \`fosskar.nix': ${shown}`;
