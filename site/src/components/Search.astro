@@ -1,6 +1,6 @@
 ---
 // search field with a dropdown that opens on the first typed letter;
-// items come from the #search-items json that Layout renders once per page
+// items come from /search.json (src/pages/search.json.ts)
 ---
 
 <div class="palette" data-search>
@@ -35,9 +35,18 @@
     hint: string;
     href: string;
   }
-  const items: Item[] = JSON.parse(
-    document.getElementById("search-items")!.textContent!,
-  );
+  // loaded once, when the dialog first opens or someone types
+  let items: Item[] = [];
+  let loading: Promise<void> | undefined;
+  const load = () =>
+    (loading ??= fetch("/search.json")
+      .then((r) => {
+        if (!r.ok) throw new Error(`search.json: ${r.status}`);
+        return r.json();
+      })
+      .then((data: Item[]) => {
+        items = data;
+      }));
   const dialog = document.querySelector<HTMLDialogElement>("#search-dialog")!;
 
   const esc = (s: string) =>
@@ -75,7 +84,7 @@
       mark();
     }
 
-    input.addEventListener("input", render);
+    input.addEventListener("input", () => load().then(render));
     input.addEventListener("focus", () => (ul.hidden = !input.value.trim()));
     input.addEventListener("keydown", (e) => {
       const l = links();
@@ -105,6 +114,7 @@
   document.querySelectorAll<HTMLElement>("[data-search]").forEach(setup);
 
   const open = () => {
+    load();
     dialog.showModal();
     dialog.querySelector("input")!.focus();
   };

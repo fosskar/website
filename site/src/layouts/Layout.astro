@@ -2,9 +2,6 @@
 import "@fontsource-variable/inter";
 import "@fontsource/commit-mono/500.css";
 import Search from "../components/Search.astro";
-import { getCollection } from "astro:content";
-import { published } from "../lib/posts";
-import { searchItems } from "../lib/search";
 import { fosskar, storePath } from "../lib/site-data";
 
 interface Props {
@@ -35,13 +32,6 @@ const crumbs = [
   ),
 ].join("");
 const settings = fosskar.website.settings;
-const items = searchItems({
-  projects: await getCollection("projects"),
-  posts: published(await getCollection("blog")),
-  notes: await getCollection("wiki"),
-  contact: fosskar.contact,
-  code: fosskar.me.code,
-});
 
 ---
 
@@ -115,11 +105,6 @@ const items = searchItems({
     <dialog id="search-dialog" aria-label="search">
       <Search />
     </dialog>
-    <script
-      type="application/json"
-      id="search-items"
-      set:html={JSON.stringify(items)}
-    />
     <script>
       // hover "#" anchors on article body headings
       document
@@ -335,10 +320,10 @@ const items = searchItems({
   footer a {
     color: var(--muted);
   }
-  .built {
+  footer .built {
     overflow-wrap: anywhere;
   }
-  .dim {
+  footer .dim {
     color: var(--dim);
   }
 
