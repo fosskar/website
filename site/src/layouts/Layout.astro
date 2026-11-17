@@ -48,9 +48,22 @@ const crumbs = [
     <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
     <link rel="apple-touch-icon" href="/icon.png" />
     <link rel="alternate" type="application/rss+xml" title="fosskar blog" href="/rss.xml" />
-    <!-- goatcounter, self-hosted and cookieless; nixfiles routes /count and
-         /count.js of this domain to it. they 404 in dev and local previews -->
-    <script is:inline data-goatcounter="/count" async src="/count.js"></script>
+    <!-- liwan, self-hosted and cookieless; nixfiles routes /script.js and
+         /api/event of this domain to it. liwan's script reads data-api and
+         data-entity from this tag and then reports the page view itself -->
+    <script is:inline type="module" data-api="/api/event" data-entity="website">
+      import("/script.js").then(
+        // a click on a marked link is an event named "click"
+        ({ event }) =>
+          document.querySelectorAll("[data-click]").forEach((a) =>
+            a.addEventListener("click", () =>
+              event("click", { properties: { target: a.dataset.click } }),
+            ),
+          ),
+        // no liwan behind this host: dev server, local preview
+        () => {},
+      );
+    </script>
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
